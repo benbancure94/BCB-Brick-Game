@@ -23,13 +23,13 @@
                     var outerTileCell = document.createElementNS(svgNS, "rect");
                     var tileCell = document.createElementNS(svgNS, "rect");
 
-                    outerCell.setAttribute("transform", "translate(" + (j * 20).toString() + "," + (i * 20) + ")");
+                    outerCell.id = "tileCell" + String.fromCharCode(j + 65) + String.fromCharCode(i + 65);
 
-                    outerTileCell.setAttribute("stroke", "#333333");
-                    outerTileCell.setAttribute("stroke-width", "1");
+                    outerCell.setAttribute("transform", "translate(" + (j * 20).toString() + "," + (i * 20) + ")");
+                
                     outerTileCell.setAttribute("width", "18");
                     outerTileCell.setAttribute("height", "18");
-                    outerTileCell.setAttribute("fill", "white");
+                    outerTileCell.setAttribute("data-tilecolor", "white");
                     outerTileCell.setAttribute("x", "1");
                     outerTileCell.setAttribute("y", "1");
 
@@ -37,13 +37,17 @@
                     tileCell.setAttribute("height", "14");
                     tileCell.setAttribute("x", "3");
                     tileCell.setAttribute("y", "3");
-                    tileCell.setAttribute("fill", "black");
 
                     outerCell.appendChild(outerTileCell);
                     outerCell.appendChild(tileCell);
                     mainContainer.appendChild(outerCell)
                 }
             };
+        }
+        function changeTileColor(x, y, color) {
+            if (!color) color = "white";
+            var outerCell = document.getElementById("tileCell" + String.fromCharCode(x + 65) + String.fromCharCode(y + 65));
+            outerCell.children[0].setAttribute("data-tilecolor", color);
         }
         function KeySound() {
             console.log("key sounds");
@@ -459,6 +463,7 @@
 
         window.onload = function() {
             loadTiles();
+            changeTileColor(0, 0, "black");
             navigate(OpeningPage);
         }
     }

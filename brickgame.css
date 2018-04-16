@@ -13,4 +13,20 @@ svg {
     margin: auto;
 }
 
+#mainContainer [data-tilecolor] {
+    stroke-width: 1px;
+    fill: white;
+}
+#mainContainer [data-tilecolor="black"] {
+    stroke: #333333;
+}
+#mainContainer [data-tilecolor="black"] + * {
+    fill: black;
+}
+#mainContainer [data-tilecolor="white"] {
+    stroke: white;
+}
+#mainContainer [data-tilecolor="white"] + * {
+    fill: white;
+}
 
