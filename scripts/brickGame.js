@@ -49,91 +49,6 @@
             console.log("key sounds");
         } 
 
-        var GameSound = new function() {
-            // DECLARATIONS
-            var currentVolume = 1;
-            var soundBaseURL = "sounds";
-    
-            var music = {
-                current: 0,
-                audios: [
-                    new Audio(soundBaseURL + "/opening2.wav"),
-                    new Audio(soundBaseURL + "/startgame.wav"),
-                    new Audio(soundBaseURL + "/gameover.wav"),
-                    new Audio(soundBaseURL + "/levelUp.wav"),
-                    new Audio(soundBaseURL + "/startgame2.wav")
-                ]
-            };
-            var sound = {
-                current: 0,
-                audios: [
-                    new Audio(soundBaseURL + "/move.wav"),
-                    new Audio(soundBaseURL + "/hit.wav"),
-                    new Audio(soundBaseURL + "/move2.wav"),
-                    new Audio(soundBaseURL + "/fire.wav"),
-                    new Audio(soundBaseURL + "/score.wav"),
-                    new Audio(soundBaseURL + "/carsound1.wav"),
-                    new Audio(soundBaseURL + "/fire2.wav"),
-                    new Audio(soundBaseURL + "/select.wav")
-                ]
-            }
-    
-            this.music = {
-                opening: function() { play("music", 0) },
-                startGame: function() { play("music", 1) },
-                gameOver: function() { play("music", 2) },
-                levelUp: function(onend) { play("music", 3, false, onend) },
-                startGame2: function() { play("music", 4) }
-            };
-            this.sound = {
-                move: function() { play("sound", 0) },
-                explosion: function() { play("sound", 1) },
-                move2: function() { play("sound", 2) },
-                fire: function() { play("sound", 3) },
-                score: function() { play("sound", 4) },
-                carSound1: function() { play("sound", 5, true) },
-                fire2: function() { play("sound", 6) },
-                select: function() { play("sound", 7) }
-            };
-    
-            function play(type, index, loop, endFunction) {
-                var audioType = type == "music" ? music: sound;
-                var currentAudio = audioType.audios[audioType.current];
-                if(currentAudio.currentTime > 0 && !currentAudio.paused && currentAudio.readyState > 2) {
-                    currentAudio.pause(); 
-                }
-                currentAudio.currentTime = 0;
-                audioType.current = index;
-                currentAudio = audioType.audios[audioType.current];
-                currentAudio.volume = currentVolume;
-                if (loop != undefined) currentAudio.loop = loop;
-                currentAudio.onended = endFunction;
-                currentAudio.play();
-            }
-    
-            this.pause = function() {
-                music.audios[music.current].pause();
-                sound.audios[sound.current].pause();
-            };
-            this.resume = function() {
-                if (!music.audios[music.current].ended && music.audios[music.current].currentTime > 0) music.audios[music.current].play();
-                if (!sound.audios[sound.current].ended && sound.audios[sound.current].currentTime > 0) sound.audios[sound.current].play();
-            };
-            this.stop = function() {
-                music.audios[music.current].pause(); music.audios[music.current].currentTime = 0;
-                sound.audios[sound.current].pause(); sound.audios[sound.current].currentTime = 0;
-            };
-            this.getVolume = function() { return currentVolume };
-            this.setVolume = function(_volume) {
-                currentVolume = _volume;
-                music.audios[music.current].volume = _volume;
-                sound.audios[sound.current].volume = _volume;
-            }
-            this.getObject = function() {
-                console.log(music, sound);
-            }
-        };
-
         function Page() {
             var _thispage = this;
             var isMarqueePage = false;
@@ -348,7 +263,6 @@
         // PAGES
         function OpeningPage() {
             var page = new Page();
-            GameSound.music.opening();
             page.marquee("BRICK GAME", 300);
             page.canvasColor("black");
             page.keydown(function() {
