@@ -5,83 +5,190 @@
     function BrickGame() {
         var currentpage = undefined;
 
-        var BrickGameModel = {
-            level: 1,
-            speed: 2,
-            score: 0,
-            volume: 0,
-            gameNumber: 0,
-            paused: false,
-            setLevel: function(dir) {
+        var BrickGameModel = new function() {
+            var loaded = false;
+            var data = {
+                level: 1,
+                speed: 2,
+                score: 0,
+                volume: 1,
+                gameNumber: 0,
+                highScore: 0
+            };
+
+            this.setLevel = function(dir) {
                 if (dir === "up") 
-                    BrickGameModel.level = BrickGameModel.level === 10 ? 1: BrickGameModel.level + 1;
+                    data.level = data.level === 10 ? 1: data.level + 1;
                 else if (dir === "down")
-                    BrickGameModel.level = BrickGameModel.level === 1 ? 10: BrickGameModel.level - 1;
+                    data.level = data.level === 1 ? 10: data.level - 1;
                 else if (typeof dir === "number") {
                     if (dir > 10) dir = 10;
                     else if (dir < 1) dir = 1;
-                    BrickGameModel.level = dir;
+                    data.level = dir;
                 }
                 else if (!dir || dir === "default") { /* do nothing */ }
                 else throw new Error("Invalid way of setting level");
-                txLevel.innerHTML = BrickGameModel.level.toString();
-            },
-            setSpeed: function(dir) {
+                txLevel.innerHTML = data.level.toString();
+            };
+            this.setSpeed = function(dir) {
                 if (dir === "up") 
-                    BrickGameModel.speed = BrickGameModel.speed === 10 ? 1: BrickGameModel.speed + 1;
+                    data.speed = data.speed === 10 ? 1: data.speed + 1;
                 else if (dir === "down")
-                    BrickGameModel.speed = BrickGameModel.speed === 1 ? 10: BrickGameModel.speed - 1;
+                    data.speed = data.speed === 1 ? 10: data.speed - 1;
                 else if (typeof dir === "number") {
                     if (dir > 10) dir = 10;
                     else if (dir < 1) dir = 1;
-                    BrickGameModel.speed = dir;
+                    data.speed = dir;
                 }
                 else if (!dir || dir === "default") { /* do nothing */ }
                 else throw new Error("Invalid way of setting speed");
-                txSpeed.innerHTML = BrickGameModel.speed.toString();
-            },
-            setScore: function(dir) {
+                txSpeed.innerHTML = data.speed.toString();
+            };
+            this.setScore = function(dir) {
                 if (dir === "up") {
-                    BrickGameModel.score++;
-                    if (BrickGameModel.score > gameData.highscores[BrickGameModel.gameNumber]) 
-                        BrickGameModel.setHighScore(++gameData.highscores[BrickGameModel.gameNumber]);
+                    data.score++;
+                    if (data.score > gameData.highscores[data.gameNumber]) 
+                        data.setHighScore(++gameData.highscores[data.gameNumber]);
                 }
                 else if (!dir || dir === "default")
-                    BrickGameModel.score = 0;
+                    data.score = 0;
                 else throw new Error("Invalid way of setting score");
-                txScore.innerHTML = BrickGameModel.score.toString();
+                txScore.innerHTML = data.score.toString();
             },
-            setHighScore: function(hs) {
+            this.setHighScore = function(hs) {
                 if (typeof hs !== "number") throw new Error("Invalid way of setting high score");
-                txHighScore.innerHTML = (BrickGameModel.highScore = hs).toString();
-            },
-            changeGame: function(dir) {
+                txHighScore.innerHTML = (data.highScore = hs).toString();
+            };
+            this.currentGame = function() {
+                return data.gameNumber;
+            }
+            this.changeGame = function(dir) {
                 var gl = gameData.highscores.length - 1;
                 if (dir === "up")
-                    BrickGameModel.gameNumber = BrickGameModel.gameNumber === gl ? 0: BrickGameModel.gameNumber + 1;
+                    data.gameNumber = data.gameNumber === gl ? 0: data.gameNumber + 1;
                 else if (typeof dir === "number") {
                     if (dir > gl) dir = gl;
                     else if (dir < 0) dir = 0;
-                    BrickGameModel.gameNumber = dir;
+                    data.gameNumber = dir;
                 }
                 else if (!dir || dir === "default") { /* do nothing */ }
                 else throw new Error("Invalid way of changing game");
-                BrickGameModel.setHighScore(gameData.highscores[BrickGameModel.gameNumber]);
-            },
-            setPause: function(paused) {
-                pauseIcon.innerHTML = (BrickGameModel.paused = paused) ? "&#xf04c": "";
-            },
-            setVolume: function(volume) {
-                if(volume == 1 || volume == 0.75) {
-                    musicIcon.innerHTML = "&#xf028";
+                BrickGameModel.setHighScore(gameData.highscores[data.gameNumber]);
+            };
+            this.setPause = function(paused) {
+                pauseIcon.innerHTML = (data.paused = paused) ? "&#xf04c": "";
+            };
+            this.load = function() {
+                if (loaded) throw new Error("Brick Game Data is loaded!");
+                this.setLevel();
+                this.setSpeed();
+                this.changeGame();
+                this.setScore();
+                this.gameSound.setVolume();
+                loaded = true;
+            };
+
+            this.gameSound = new function() {
+                // DECLARATIONS
+                var currentVolume = data.volume;
+                var soundBaseURL = "sounds";
+        
+                var music = {
+                    current: 0,
+                    audios: [
+                        new Audio(soundBaseURL + "/opening2.wav"),
+                        new Audio(soundBaseURL + "/startgame.wav"),
+                        new Audio(soundBaseURL + "/gameover.wav"),
+                        new Audio(soundBaseURL + "/levelUp.wav"),
+                        new Audio(soundBaseURL + "/startgame2.wav")
+                    ]
+                };
+                var sound = {
+                    current: 0,
+                    audios: [
+                        new Audio(soundBaseURL + "/move.wav"),
+                        new Audio(soundBaseURL + "/hit.wav"),
+                        new Audio(soundBaseURL + "/move2.wav"),
+                        new Audio(soundBaseURL + "/fire.wav"),
+                        new Audio(soundBaseURL + "/score.wav"),
+                        new Audio(soundBaseURL + "/carsound1.wav"),
+                        new Audio(soundBaseURL + "/fire2.wav"),
+                        new Audio(soundBaseURL + "/select.wav")
+                    ]
                 }
-                else if(volume == 0.5 || volume == 0.25) {
-                    musicIcon.innerHTML = "&#xf027";
+        
+                this.music = {
+                    opening: function() { play("music", 0) },
+                    startGame: function() { play("music", 1) },
+                    gameOver: function() { play("music", 2) },
+                    levelUp: function(onend) { play("music", 3, false, onend) },
+                    startGame2: function() { play("music", 4) }
+                };
+                this.sound = {
+                    move: function() { play("sound", 0) },
+                    explosion: function() { play("sound", 1) },
+                    move2: function() { play("sound", 2) },
+                    fire: function() { play("sound", 3) },
+                    score: function() { play("sound", 4) },
+                    carSound1: function() { play("sound", 5, true) },
+                    fire2: function() { play("sound", 6) },
+                    select: function() { play("sound", 7) }
+                };
+        
+                function play(type, index, loop, endFunction) {
+                    var audioType = type == "music" ? music: sound;
+                    var currentAudio = audioType.audios[audioType.current];
+                    if(currentAudio.currentTime > 0 && !currentAudio.paused && currentAudio.readyState > 2) {
+                        currentAudio.pause(); 
+                    }
+                    currentAudio.currentTime = 0;
+                    audioType.current = index;
+                    currentAudio = audioType.audios[audioType.current];
+                    currentAudio.volume = data.volume;
+                    if (loop != undefined) currentAudio.loop = loop;
+                    currentAudio.onended = endFunction;
+                    currentAudio.play();
                 }
-                else {
-                    musicIcon.innerHTML = "&#xf026";
+        
+                this.pause = function() {
+                    music.audios[music.current].pause();
+                    sound.audios[sound.current].pause();
+                };
+                this.resume = function() {
+                    if (!music.audios[music.current].ended && music.audios[music.current].currentTime > 0) music.audios[music.current].play();
+                    if (!sound.audios[sound.current].ended && sound.audios[sound.current].currentTime > 0) sound.audios[sound.current].play();
+                };
+                this.stop = function() {
+                    music.audios[music.current].pause(); music.audios[music.current].currentTime = 0;
+                    sound.audios[sound.current].pause(); sound.audios[sound.current].currentTime = 0;
+                };
+                this.getVolume = function() { return currentVolume };
+                this.setVolume = function(dir) {
+                    if (dir === "down") 
+                        data.volume = data.volume == 0 ? 1 : data.volume - 0.25;
+                    else if (typeof dir === "number") 
+                        data.volume = dir;
+                    else if (!dir || dir === "default") { /* do nothing */ }
+                    else
+                        throw new Error("Invalid way of setting volume");
+
+                    music.audios[music.current].volume = data.volume;
+                    sound.audios[sound.current].volume = data.volume;
+
+                    if(data.volume == 1 || data.volume == 0.75) {
+                        musicIcon.innerHTML = "&#xf028";
+                    }
+                    else if(data.volume == 0.5 || data.volume == 0.25) {
+                        musicIcon.innerHTML = "&#xf027";
+                    }
+                    else {
+                        musicIcon.innerHTML = "&#xf026";
+                    }
                 }
-            }
+                this.getObject = function() {
+                    console.log(music, sound);
+                }
+            };
         };
 
         const svgNS = "http://www.w3.org/2000/svg";
@@ -137,102 +244,15 @@
             };
         }
         function loadData() {
-            BrickGameModel.setLevel(); 
-            BrickGameModel.setSpeed(); 
-            BrickGameModel.changeGame();
-            BrickGameModel.setScore();
-            GameSound.setVolume(0);
+            BrickGameModel.load();
         }
         
         function KeySound() {
             console.log("key sounds");
         } 
 
-        var GameSound = new function() {
-            // DECLARATIONS
-            var currentVolume = BrickGameModel.volume;
-            var soundBaseURL = "sounds";
-    
-            var music = {
-                current: 0,
-                audios: [
-                    new Audio(soundBaseURL + "/opening2.wav"),
-                    new Audio(soundBaseURL + "/startgame.wav"),
-                    new Audio(soundBaseURL + "/gameover.wav"),
-                    new Audio(soundBaseURL + "/levelUp.wav"),
-                    new Audio(soundBaseURL + "/startgame2.wav")
-                ]
-            };
-            var sound = {
-                current: 0,
-                audios: [
-                    new Audio(soundBaseURL + "/move.wav"),
-                    new Audio(soundBaseURL + "/hit.wav"),
-                    new Audio(soundBaseURL + "/move2.wav"),
-                    new Audio(soundBaseURL + "/fire.wav"),
-                    new Audio(soundBaseURL + "/score.wav"),
-                    new Audio(soundBaseURL + "/carsound1.wav"),
-                    new Audio(soundBaseURL + "/fire2.wav"),
-                    new Audio(soundBaseURL + "/select.wav")
-                ]
-            }
-    
-            this.music = {
-                opening: function() { play("music", 0) },
-                startGame: function() { play("music", 1) },
-                gameOver: function() { play("music", 2) },
-                levelUp: function(onend) { play("music", 3, false, onend) },
-                startGame2: function() { play("music", 4) }
-            };
-            this.sound = {
-                move: function() { play("sound", 0) },
-                explosion: function() { play("sound", 1) },
-                move2: function() { play("sound", 2) },
-                fire: function() { play("sound", 3) },
-                score: function() { play("sound", 4) },
-                carSound1: function() { play("sound", 5, true) },
-                fire2: function() { play("sound", 6) },
-                select: function() { play("sound", 7) }
-            };
-    
-            function play(type, index, loop, endFunction) {
-                var audioType = type == "music" ? music: sound;
-                var currentAudio = audioType.audios[audioType.current];
-                if(currentAudio.currentTime > 0 && !currentAudio.paused && currentAudio.readyState > 2) {
-                    currentAudio.pause(); 
-                }
-                currentAudio.currentTime = 0;
-                audioType.current = index;
-                currentAudio = audioType.audios[audioType.current];
-                currentAudio.volume = currentVolume;
-                if (loop != undefined) currentAudio.loop = loop;
-                currentAudio.onended = endFunction;
-                currentAudio.play();
-            }
-    
-            this.pause = function() {
-                music.audios[music.current].pause();
-                sound.audios[sound.current].pause();
-            };
-            this.resume = function() {
-                if (!music.audios[music.current].ended && music.audios[music.current].currentTime > 0) music.audios[music.current].play();
-                if (!sound.audios[sound.current].ended && sound.audios[sound.current].currentTime > 0) sound.audios[sound.current].play();
-            };
-            this.stop = function() {
-                music.audios[music.current].pause(); music.audios[music.current].currentTime = 0;
-                sound.audios[sound.current].pause(); sound.audios[sound.current].currentTime = 0;
-            };
-            this.getVolume = function() { return currentVolume };
-            this.setVolume = function(volume) {
-                currentVolume = volume;
-                music.audios[music.current].volume = volume;
-                sound.audios[sound.current].volume = volume;
-                BrickGameModel.setVolume(volume);
-            }
-            this.getObject = function() {
-                console.log(music, sound);
-            }
-        };
+
+        var GameSound = BrickGameModel.gameSound;
 
         function Page() {
             var _thispage = this;
@@ -378,7 +398,7 @@
             this.canvasColor = function(color) {
                 canvas = color ? color: canvas;
                 _canvasColor(color);
-            }
+            };
             this.keydown = function(param1, param2) {
                 var backgroundFunction;
                 var individualKeyFunctions;
@@ -420,10 +440,8 @@
                                 else if (keycode === "arrowright") keycode = "right";
                                 else if (keycode === " ") keycode = "space";
                                 individualKeyFunctions.s = function() {
-                                    BrickGameModel.volume = BrickGameModel.volume == 0 ? 1 : BrickGameModel.volume - 0.25;
                                     console.log("sound volume adjusted");
-                                    console.log(BrickGameModel);
-                                    GameSound.setVolume(BrickGameModel.volume);
+                                    GameSound.setVolume("down");
                                 }
 
                                 if (typeof individualKeyFunctions[keycode] !== "undefined") { 
@@ -706,19 +724,19 @@
             var paused = false;
             var life = 4;
 
-            var selectedGame = games[BrickGameModel.gameNumber];
+            var selectedGame = games[BrickGameModel.currentGame()];
             var gameplay = new selectedGame.gameplay();
             var keydownfunctions = gameplay.keydown;
 
             keydownfunctions.enter = function() {
                 if (paused) {
                     paused = false;
-                    page.keydown({ "disabled": ["left", "right", "up", "down", "space"] });
+                    page.keydown("enableAll");
                     GameSound.resume();
                 }
                 else {
                     paused = true;
-                    page.keydown("enableAll");
+                    page.keydown({ "disabled": ["left", "right", "up", "down", "space"] });
                     GameSound.pause();
                 }
                 BrickGameModel.setPause(paused);
@@ -766,7 +784,6 @@
             }
             function levelUp() {
                 BrickGameModel.setLevel("up");
-                console.log(BrickGameModel);
                 navigate(LevelUpPage);
             }
             function initialize() {
@@ -806,12 +823,10 @@
             currentpage = page;
         }
 
-        
-
         window.onload = function() {
             loadTiles();
             loadLifeTiles();
-            loadData();
+            BrickGameModel.load();
             navigate(OpeningPage);
         }
     }
