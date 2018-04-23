@@ -1,0 +1,67 @@
+@font-face {
+	font-family: digital;
+	src: url('../fonts/LED-16-Segment-2-Italic/led16sgmnt2-Regular.ttf');
+}
+@font-face {
+	font-family: digital italic;
+	src: url('../fonts/LED-16-Segment-2-Italic/led16sgmnt2-Italic.ttf');
+}
+@font-face {
+	font-family: 'FontAwesome';
+	src: url('../fonts/Font-Awesome/FontAwesome.otf');
+}
+* {
+    box-sizing: border-box;
+}
+svg * {
+    box-sizing: initial;
+}
+.ben-brick-container {
+    width: 360px;
+    height: 444px;
+    margin: auto;
+    border: 8px inset #cccccc;
+    padding: 10px;
+}
+.ben-brick-screen {
+    width: 100%;
+    height: 100%;
+}
+#mainContainer {
+    width: 100%;
+    height: 100%;
+    border: 2px solid black;
+    padding: 3px;
+}
+[data-icons] {
+    font-family: "FontAwesome"
+}
+#mainContainer [data-tilecolor], #lifeContainer [data-tilecolor] {
+    stroke-width: 1px;
+    fill: white;
+}
+#lifeContainer [data-tilecolor] {
+    width: 14px; height: 14px;
+}
+#mainContainer [data-tilecolor] {
+    width: 18px; height: 18px;
+}
+#mainContainer [data-tilecolor] + * {
+    width: 14px; height: 14px;
+}
+#lifeContainer [data-tilecolor] + * {
+    width: 10px; height: 10px;
+}
+#mainContainer [data-tilecolor="black"], #lifeContainer [data-tilecolor="black"] {
+    stroke: #333333;
+}
+#mainContainer [data-tilecolor="black"] + *, #lifeContainer [data-tilecolor="black"] + * {
+    fill: black;
+}
+#mainContainer [data-tilecolor="white"] {
+    stroke: #f0f0f0;
+}
+#mainContainer [data-tilecolor="white"] + * {
+    fill: #eeeeee;
+}
+

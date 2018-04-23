@@ -1,21 +1,92 @@
 (function() {
     var gameData = { 
-        highscores: [0, 0, 0]
+        highscores: [20, 50, 143]
     };
     function BrickGame() {
         var currentpage = undefined;
 
         var BrickGameModel = {
             level: 1,
-            speed: 1,
+            speed: 2,
             score: 0,
-            volume: 1,
-            gameNumber: 0
+            volume: 0,
+            gameNumber: 0,
+            paused: false,
+            setLevel: function(dir) {
+                if (dir === "up") 
+                    BrickGameModel.level = BrickGameModel.level === 10 ? 1: BrickGameModel.level + 1;
+                else if (dir === "down")
+                    BrickGameModel.level = BrickGameModel.level === 1 ? 10: BrickGameModel.level - 1;
+                else if (typeof dir === "number") {
+                    if (dir > 10) dir = 10;
+                    else if (dir < 1) dir = 1;
+                    BrickGameModel.level = dir;
+                }
+                else if (!dir || dir === "default") { /* do nothing */ }
+                else throw new Error("Invalid way of setting level");
+                txLevel.innerHTML = BrickGameModel.level.toString();
+            },
+            setSpeed: function(dir) {
+                if (dir === "up") 
+                    BrickGameModel.speed = BrickGameModel.speed === 10 ? 1: BrickGameModel.speed + 1;
+                else if (dir === "down")
+                    BrickGameModel.speed = BrickGameModel.speed === 1 ? 10: BrickGameModel.speed - 1;
+                else if (typeof dir === "number") {
+                    if (dir > 10) dir = 10;
+                    else if (dir < 1) dir = 1;
+                    BrickGameModel.speed = dir;
+                }
+                else if (!dir || dir === "default") { /* do nothing */ }
+                else throw new Error("Invalid way of setting speed");
+                txSpeed.innerHTML = BrickGameModel.speed.toString();
+            },
+            setScore: function(dir) {
+                if (dir === "up") {
+                    BrickGameModel.score++;
+                    if (BrickGameModel.score > gameData.highscores[BrickGameModel.gameNumber]) 
+                        BrickGameModel.setHighScore(++gameData.highscores[BrickGameModel.gameNumber]);
+                }
+                else if (!dir || dir === "default")
+                    BrickGameModel.score = 0;
+                else throw new Error("Invalid way of setting score");
+                txScore.innerHTML = BrickGameModel.score.toString();
+            },
+            setHighScore: function(hs) {
+                if (typeof hs !== "number") throw new Error("Invalid way of setting high score");
+                txHighScore.innerHTML = (BrickGameModel.highScore = hs).toString();
+            },
+            changeGame: function(dir) {
+                var gl = gameData.highscores.length - 1;
+                if (dir === "up")
+                    BrickGameModel.gameNumber = BrickGameModel.gameNumber === gl ? 0: BrickGameModel.gameNumber + 1;
+                else if (typeof dir === "number") {
+                    if (dir > gl) dir = gl;
+                    else if (dir < 0) dir = 0;
+                    BrickGameModel.gameNumber = dir;
+                }
+                else if (!dir || dir === "default") { /* do nothing */ }
+                else throw new Error("Invalid way of changing game");
+                BrickGameModel.setHighScore(gameData.highscores[BrickGameModel.gameNumber]);
+            },
+            setPause: function(paused) {
+                pauseIcon.innerHTML = (BrickGameModel.paused = paused) ? "&#xf04c": "";
+            },
+            setVolume: function(volume) {
+                if(volume == 1 || volume == 0.75) {
+                    musicIcon.innerHTML = "&#xf028";
+                }
+                else if(volume == 0.5 || volume == 0.25) {
+                    musicIcon.innerHTML = "&#xf027";
+                }
+                else {
+                    musicIcon.innerHTML = "&#xf026";
+                }
+            }
         };
 
-        function loadTiles() {
-            var svgNS = "http://www.w3.org/2000/svg";
+        const svgNS = "http://www.w3.org/2000/svg";
 
+        function loadTiles() {
             for (var i = 0; i < 20; i++) {
                 for(var j = 0; j < 10; j++) {
 
@@ -27,14 +98,10 @@
 
                     outerCell.setAttribute("transform", "translate(" + (j * 20).toString() + "," + (i * 20) + ")");
                 
-                    outerTileCell.setAttribute("width", "18");
-                    outerTileCell.setAttribute("height", "18");
                     outerTileCell.setAttribute("data-tilecolor", "white");
                     outerTileCell.setAttribute("x", "1");
                     outerTileCell.setAttribute("y", "1");
 
-                    tileCell.setAttribute("width", "14");
-                    tileCell.setAttribute("height", "14");
                     tileCell.setAttribute("x", "3");
                     tileCell.setAttribute("y", "3");
 
@@ -44,6 +111,38 @@
                 }
             };
         }
+        function loadLifeTiles() {
+            for (var i = 0; i < 4; i++) {
+                for(var j = 0; j < 4; j++) {
+
+                    var outerCell = document.createElementNS(svgNS, "g");
+                    var outerTileCell = document.createElementNS(svgNS, "rect");
+                    var tileCell = document.createElementNS(svgNS, "rect");
+
+                    outerCell.id = "lifeTileCell" + String.fromCharCode(j + 65) + String.fromCharCode(i + 65);
+
+                    outerCell.setAttribute("transform", "translate(" + (j * 16).toString() + "," + (i * 16) + ")");
+                
+                    outerTileCell.setAttribute("data-tilecolor", "black");
+                    outerTileCell.setAttribute("x", "1");
+                    outerTileCell.setAttribute("y", "1");
+
+                    tileCell.setAttribute("x", "3");
+                    tileCell.setAttribute("y", "3");
+
+                    outerCell.appendChild(outerTileCell);
+                    outerCell.appendChild(tileCell);
+                    lifeContainer.appendChild(outerCell)
+                }
+            };
+        }
+        function loadData() {
+            BrickGameModel.setLevel(); 
+            BrickGameModel.setSpeed(); 
+            BrickGameModel.changeGame();
+            BrickGameModel.setScore();
+            GameSound.setVolume(0);
+        }
         
         function KeySound() {
             console.log("key sounds");
@@ -51,7 +150,7 @@
 
         var GameSound = new function() {
             // DECLARATIONS
-            var currentVolume = 1;
+            var currentVolume = BrickGameModel.volume;
             var soundBaseURL = "sounds";
     
             var music = {
@@ -124,10 +223,11 @@
                 sound.audios[sound.current].pause(); sound.audios[sound.current].currentTime = 0;
             };
             this.getVolume = function() { return currentVolume };
-            this.setVolume = function(_volume) {
-                currentVolume = _volume;
-                music.audios[music.current].volume = _volume;
-                sound.audios[sound.current].volume = _volume;
+            this.setVolume = function(volume) {
+                currentVolume = volume;
+                music.audios[music.current].volume = volume;
+                sound.audios[sound.current].volume = volume;
+                BrickGameModel.setVolume(volume);
             }
             this.getObject = function() {
                 console.log(music, sound);
@@ -146,7 +246,7 @@
             function changeTileColor(x, y, color) {
                 if (!color) color = "white";
                 var outerCell = document.getElementById("tileCell" + String.fromCharCode(x + 65) + String.fromCharCode(y + 65));
-                outerCell.children[0].setAttribute("data-tilecolor", color);
+                if (outerCell) outerCell.children[0].setAttribute("data-tilecolor", color);
             }
             function generateRandomId() {
                 var number = Math.floor(Math.random() * 9e8) + 1e8;
@@ -164,6 +264,115 @@
                     }
                 }
             }
+            function setZIndices() {
+                for (var i = 0; i < brickObjects.length; i++) {
+                    brickObjects[i].zIndex = i;
+                }
+            }
+            function paint() {
+
+                brickObjects = brickObjects.sort(function(a, b) { return a.zIndex - b.zIndex; });
+    
+                var index = 0;
+                while (index < brickObjects.length) {
+                    var brickObject = brickObjects[index];
+                    var loc = brickObject.brickLocation;
+                    var brickTiles = brickObject.oldTiles;
+                    var brickTileCount = brickTiles.length;
+                    for (var j = 0; j < brickTileCount; j++) {
+                        var brickTile = brickTiles[j];
+                        changeTileColor(brickTile.screenX, brickTile.screenY, canvas);
+                    }
+    
+                    if (brickObject.tiles.length == 0 && brickObject.isRemoved) brickObjects.splice(index, 1);
+                    index++;
+                }
+    
+                setZIndices();
+                
+                var brickObjectsLength = brickObjects.length;
+                for (var i = 0; i < brickObjectsLength; i++) {
+                    var brickObject = brickObjects[i];
+                    var brickTiles = brickObject.tiles;
+                    var brickTileCount = brickTiles.length;
+                    var brickColor = brickObject.visible ? brickObject.color: canvas;
+                    for (var j = 0; j < brickTileCount; j++) {
+                        var brickTile = brickTiles[j];
+                        changeTileColor(brickTile.screenX, brickTile.screenY, brickColor);
+                    }
+                    brickObject.overlappedObjects = [];
+                    brickObject.collidedObjects = {
+                        left: [], right: [], top: [], bottom: [], all: []
+                    };
+    
+                    brickObject.oldTiles = JSON.parse(JSON.stringify(brickObject.tiles));
+                }
+    
+                // for (var i = 0; i < brickObjectsLength; i++) {
+                //     var brickObject = brickObjects[i];
+                //     var brickTiles = brickObject.tiles;
+                //     var brickTileCount = brickTiles.length;
+                //     for (var j = i + 1; j < brickObjectsLength; j++) {
+                //         var collidedLeft = false, collidedRight = false, collidedTop = false, collidedBottom = false;
+                //         var overlappedBrickObject = brickObjects[j];
+                //         for (var t = 0; t < brickTileCount; t++) {
+                //             var overlapped = overlappedBrickObject.tiles.filter(function(tile) { 
+                //                 return tile.screenX == brickTiles[t].screenX && tile.screenY == brickTiles[t].screenY;
+                //             }).length > 0;
+                //             if (!collidedLeft) {
+                //                 collidedLeft = overlappedBrickObject.tiles.filter(function(tile) {
+                //                     return tile.screenX == brickTiles[t].screenX - 1 && tile.screenY == brickTiles[t].screenY;
+                //                 }).length > 0;
+                //             }
+                //             if (!collidedRight) {
+                //                 collidedRight = overlappedBrickObject.tiles.filter(function(tile) {
+                //                     return tile.screenX == brickTiles[t].screenX + 1 && tile.screenY == brickTiles[t].screenY;
+                //                 }).length > 0;
+                //             }
+                //             if (!collidedTop) {
+                //                 collidedTop = overlappedBrickObject.tiles.filter(function(tile) {
+                //                     return tile.screenX == brickTiles[t].screenX && tile.screenY == brickTiles[t].screenY - 1;
+                //                 }).length > 0;
+                //             }
+                //             if (!collidedBottom) {
+                //                 collidedBottom = overlappedBrickObject.tiles.filter(function(tile) {
+                //                     return tile.screenX == brickTiles[t].screenX && tile.screenY == brickTiles[t].screenY + 1;
+                //                 }).length > 0;
+                //             }
+                //             if (overlapped) {
+                //                 collidedLeft = false;
+                //                 collidedRight = false;
+                //                 collidedTop = false;
+                //                 collidedBottom = false;
+                //                 overlappedBrickObject.overlappedObjects.push(brickObject._object_);
+                //                 brickObject.overlappedObjects.push(overlappedBrickObject._object_);
+                //                 break;
+                //             }
+                //         }
+                //         if (collidedLeft) {
+                //             brickObject.collidedObjects.left.push(overlappedBrickObject._object_);
+                //             overlappedBrickObject.collidedObjects.right.push(brickObject._object_);
+                //         }
+                //         if (collidedRight) {
+                //             brickObject.collidedObjects.right.push(overlappedBrickObject._object_);
+                //             overlappedBrickObject.collidedObjects.left.push(brickObject._object_);
+                //         }
+                //         if (collidedTop) {
+                //             brickObject.collidedObjects.top.push(overlappedBrickObject._object_);
+                //             overlappedBrickObject.collidedObjects.bottom.push(brickObject._object_);
+                //         }
+                //         if (collidedBottom) {
+                //             brickObject.collidedObjects.bottom.push(overlappedBrickObject._object_);
+                //             overlappedBrickObject.collidedObjects.top.push(brickObject._object_);
+                //         }
+                //     }
+    
+                //     brickObject.collidedObjects.all = brickObject.collidedObjects.left
+                //         .concat(brickObject.collidedObjects.right)
+                //         .concat(brickObject.collidedObjects.top)
+                //         .concat(brickObject.collidedObjects.bottom);
+                // }
+            } 
 
             // METHODS
             this.canvasColor = function(color) {
@@ -214,6 +423,7 @@
                                     BrickGameModel.volume = BrickGameModel.volume == 0 ? 1 : BrickGameModel.volume - 0.25;
                                     console.log("sound volume adjusted");
                                     console.log(BrickGameModel);
+                                    GameSound.setVolume(BrickGameModel.volume);
                                 }
 
                                 if (typeof individualKeyFunctions[keycode] !== "undefined") { 
@@ -274,13 +484,6 @@
                     interval: speedInMillis == undefined ? 50: speedInMillis
                 });
                 timer.start();
-
-                var timer = setInterval(function() {
-                    console.log(chars[i]);
-                    i++;
-                    if (i === text.length) i = 0;
-                }, speedInMillis == undefined ? 50: speedInMillis);
-                
             }
 
             // INSTANTIABLE OBJECTS
@@ -328,14 +531,42 @@
                 // INITIALIZATIONS
                 timers.push(this);
             }
-            this.BrickObject = function() {
-                this.ID = generateRandomId();
+            this.BrickObject = function(params) {
+
+                var _bo = { };
+
+                params = params ? params: { };
+                _bo.tiles = params.tiles ? params.tiles: [];
+                _bo.color = params.color ? params.color: "black";
+                _bo.ID = generateRandomId();
+                _bo.brickLocation = params.brickLocation;
+                _bo.visible = params.visible ? params.visible: true;
+
+                function _setLocation(x, y, tiles) {
+                    _bo.oldTiles = JSON.parse(JSON.stringify(_bo.tiles));
+                    if (tiles) _bo.tiles = JSON.parse(JSON.stringify(tiles));;
+                    var newTiles = _bo.tiles;
+                    for (var t = 0; t < newTiles.length; t++) {
+                        tileX = x + newTiles[t].x; tileY = y + newTiles[t].y;
+                        newTiles[t].screenX = tileX; newTiles[t].screenY = tileY;
+                    }
+                    X = x; Y = y;
+                    paint();
+                }
+
+                this.setLocation = function(x, y, tiles) { _setLocation(x, y, tiles); }
                 this.remove = function() {
                     console.log(this);
-                    brickObjects.splice(brickObjects.indexOf(this), 1);
-                }
-    
-                brickObjects.push(this);
+                    brickObjects.splice(brickObjects.indexOf(_bo), 1);
+                };
+
+                brickObjects.push(_bo);
+
+                if (_bo.brickLocation) _setLocation(_bo.brickLocation.x, _bo.brickLocation.y, _bo.tiles);
+
+                setZIndices();
+               
+                _bo._object_ = this;
             }
 
             _canvasColor(canvas);
@@ -353,53 +584,49 @@
             page.canvasColor("black");
             page.keydown(function() {
                 console.log("exited brick game marquee");
-                KeySound();
+                GameSound.sound.select();
                 navigate(GameSelectPage);
             });
             return page;
         }
         function GameSelectPage() {
             var page = new Page();
+
+            BrickGameModel.setScore();
             
-            page.keydown(function() { KeySound(); },
+            page.keydown(GameSound.sound.select,
             {
                 left: {
                     repeat: true,
                     _function: function() {
-                        BrickGameModel.speed = BrickGameModel.speed === 1 ? 10: BrickGameModel.speed - 1;
-                        console.log(BrickGameModel);
+                        BrickGameModel.setSpeed("down");
                     }
                 },
                 right: {
                     repeat: true,
                     _function: function() {
-                        BrickGameModel.speed = BrickGameModel.speed === 10 ? 1: BrickGameModel.speed + 1;
-                        console.log(BrickGameModel);
+                        BrickGameModel.setSpeed("up");
                     }
                 },
                 up: {
                     repeat: true,
                     _function: function() {
-                        BrickGameModel.level = BrickGameModel.level === 10 ? 1: BrickGameModel.level + 1;
-                        console.log(BrickGameModel);
+                        BrickGameModel.setLevel("up");
                     }
                 },
                 down: {
                     repeat: true,
                     _function: function() {
-                        BrickGameModel.level = BrickGameModel.level === 1 ? 10: BrickGameModel.level - 1;
-                        console.log(BrickGameModel);
+                        BrickGameModel.setLevel("down");
                     }
                 },
                 space: {
                     repeat: true,
                     _function: function() {
-                        BrickGameModel.gameNumber = BrickGameModel.gameNumber === gameData.highscores.length - 1 ? 0: BrickGameModel.gameNumber + 1;
-                        console.log(BrickGameModel);
+                        BrickGameModel.changeGame("up");
                     }
                 },
                 enter: function() {
-                    BrickGameModel.score = 0;
                     console.log("Game started"); navigate(GamePage);
                 }
             });
@@ -418,7 +645,10 @@
                     score: 0, 
                     speedTimeout: [300, 280, 260, 240, 220, 200, 180, 160, 140, 120],
                     gameplay: function() {
-                        var brickObject1 = new page.BrickObject();
+                        var brickObject1 = new page.BrickObject({
+                            tiles: [{ x: 0, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 2 }],
+                            brickLocation: { x: 2, y: 2 }
+                        });
                         var brickObject2 = new page.BrickObject();
                         var brickObject3 = new page.BrickObject();
 
@@ -479,15 +709,26 @@
             var selectedGame = games[BrickGameModel.gameNumber];
             var gameplay = new selectedGame.gameplay();
             var keydownfunctions = gameplay.keydown;
+
             keydownfunctions.enter = function() {
-                paused = !paused;
-                console.log(paused ? "game paused": "game played");
-                page.keydown(paused ? { "disabled": ["left", "right", "up", "down", "space"] } : "enableAll");
+                if (paused) {
+                    paused = false;
+                    page.keydown({ "disabled": ["left", "right", "up", "down", "space"] });
+                    GameSound.resume();
+                }
+                else {
+                    paused = true;
+                    page.keydown("enableAll");
+                    GameSound.pause();
+                }
+                BrickGameModel.setPause(paused);
             };
 
             console.log("Game started");
 
             function lifeLost(brickObjects) {
+                GameSound.stop();
+                GameSound.sound.explosion();
                 life--;
                 console.log(life);
 
@@ -500,6 +741,7 @@
                             page.keydown("enableAll");
                             page.keyup("enableAll");
                             console.log("game over");
+                            GameSound.music.gameOver();
                             navigate(GameOverPage);
                         }
                         else {
@@ -507,7 +749,7 @@
                             setTimeout(function() { 
                                 page.keydown("enableAll");
                                 page.keyup("enableAll");
-                                gameplay.initialize();
+                                initialize();
                             }, 2000);
                         }
                     }
@@ -520,30 +762,31 @@
                 page.blinkBrickObjects(params);
             };
             function score() {
-                BrickGameModel.score++;
-                if (BrickGameModel.score > gameData.highscores[BrickGameModel.gameNumber]) 
-                    gameData.highscores[BrickGameModel.gameNumber]++;
-                console.log(BrickGameModel, gameData);
+                BrickGameModel.setScore("up");
             }
             function levelUp() {
-                if (BrickGameModel.level === 10) BrickGameModel.level = 1;
-                else BrickGameModel.level++;
+                BrickGameModel.setLevel("up");
                 console.log(BrickGameModel);
                 navigate(LevelUpPage);
             }
+            function initialize() {
+                GameSound.music.startGame();
+                gameplay.initialize();
+            }
 
             page.keydown(keydownfunctions);
-            gameplay.initialize();
+
+            initialize();
             return page;
         }
         function LevelUpPage() {
             var page = new Page();
             page.marquee("LEVEL UP", 300);
             page.keydown("disableAll");
-            setTimeout(function() { 
+            GameSound.music.levelUp(function() {
                 page.keydown("enableAll");
-                navigate(GamePage) 
-            }, 3000)
+                navigate(GamePage);
+            });
             return page;
         }
         function GameOverPage() {
@@ -563,8 +806,12 @@
             currentpage = page;
         }
 
+        
+
         window.onload = function() {
             loadTiles();
+            loadLifeTiles();
+            loadData();
             navigate(OpeningPage);
         }
     }

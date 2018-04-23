@@ -5,13 +5,34 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Page Title</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" media="screen" href="brickgame.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="styles/brickgame.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="styles/Font-Awesome/font-awesome.css" />
     <script src="test.js"></script>
     <div class="ben-brick-container">
-        <svg id="mainContainer">
+        <svg class="ben-brick-screen">
+            <rect stroke="black" x="1" y="1" stroke-width="2" height="calc(100% - 2)" width="206" fill="white" />
+            <g id="mainContainer" transform="translate(4,4)" />
             
+            <text x="220" y="15" font-family="arial condensed" font-size="10pt">SCORE</text>
+            <text x="220" y="60" font-family="arial condensed" font-size="10pt">HIGH</text>
+
+            <text x="320" y="35" font-family="digital italic" id="txScore" text-anchor="end">0</text>
+            <text x="320" y="80" font-family="digital italic" id="txHighScore" text-anchor="end">0</text>
+
+            <g id="lifeContainer" transform="translate(220, 100)" />
+
+            <text x="230" y="195" font-family="arial condensed" font-size="10pt">LEVEL</text>
+            <text x="230" y="220" font-family="arial condensed" font-size="10pt">SPEED</text>
+
+            <text x="310" y="195" font-family="digital italic" id="txLevel" text-anchor="end" />
+            <text x="310" y="220" font-family="digital italic" id="txSpeed" text-anchor="end" />
+
+            <text x="280" y="250" id="pauseIcon" data-icons text-anchor="end" />
+            <text x="310" y="250" id="musicIcon" data-icons text-anchor="end" />
         </svg>
     </div>
+
+    <span></span>
 </head>
 <body>
     
