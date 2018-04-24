@@ -4,6 +4,7 @@
     };
     function BrickGame() {
         var currentpage = undefined;
+        const svgNS = "http://www.w3.org/2000/svg";
 
         var BrickGameModel = new function() {
             var loaded = false;
@@ -17,41 +18,34 @@
             };
 
             this.setLevel = function(dir) {
-                if (dir === "up") 
-                    data.level = data.level === 10 ? 1: data.level + 1;
-                else if (dir === "down")
-                    data.level = data.level === 1 ? 10: data.level - 1;
+                if (dir === "up") data.level = data.level === 10 ? 1: data.level + 1;
+                else if (dir === "down") data.level = data.level === 1 ? 10: data.level - 1;
                 else if (typeof dir === "number") {
-                    if (dir > 10) dir = 10;
-                    else if (dir < 1) dir = 1;
-                    data.level = dir;
+                    if (dir > 10) data.level = 10;
+                    else if (dir < 1) data.level = 1;
                 }
                 else if (!dir || dir === "default") { /* do nothing */ }
                 else throw new Error("Invalid way of setting level");
                 txLevel.innerHTML = data.level.toString();
             };
             this.setSpeed = function(dir) {
-                if (dir === "up") 
-                    data.speed = data.speed === 10 ? 1: data.speed + 1;
-                else if (dir === "down")
-                    data.speed = data.speed === 1 ? 10: data.speed - 1;
+                if (dir === "up") data.speed = data.speed === 10 ? 1: data.speed + 1;
+                else if (dir === "down") data.speed = data.speed === 1 ? 10: data.speed - 1;
                 else if (typeof dir === "number") {
-                    if (dir > 10) dir = 10;
-                    else if (dir < 1) dir = 1;
-                    data.speed = dir;
+                    if (dir > 10) data.speed = 10;
+                    else if (dir < 1) data.speed = 1;
                 }
                 else if (!dir || dir === "default") { /* do nothing */ }
                 else throw new Error("Invalid way of setting speed");
                 txSpeed.innerHTML = data.speed.toString();
             };
+            this.getScore = () => data.score;
             this.setScore = function(dir) {
                 if (dir === "up") {
-                    data.score++;
-                    if (data.score > gameData.highscores[data.gameNumber]) 
-                        data.setHighScore(++gameData.highscores[data.gameNumber]);
+                    if (++data.score > gameData.highscores[data.gameNumber]) 
+                        this.setHighScore(++gameData.highscores[data.gameNumber]);
                 }
-                else if (!dir || dir === "default")
-                    data.score = 0;
+                else if (!dir || dir === "default") data.score = 0;
                 else throw new Error("Invalid way of setting score");
                 txScore.innerHTML = data.score.toString();
             },
@@ -59,13 +53,10 @@
                 if (typeof hs !== "number") throw new Error("Invalid way of setting high score");
                 txHighScore.innerHTML = (data.highScore = hs).toString();
             };
-            this.currentGame = function() {
-                return data.gameNumber;
-            }
+            this.currentGame = () => data.gameNumber;
             this.changeGame = function(dir) {
                 var gl = gameData.highscores.length - 1;
-                if (dir === "up")
-                    data.gameNumber = data.gameNumber === gl ? 0: data.gameNumber + 1;
+                if (dir === "up") data.gameNumber = data.gameNumber === gl ? 0: data.gameNumber + 1;
                 else if (typeof dir === "number") {
                     if (dir > gl) dir = gl;
                     else if (dir < 0) dir = 0;
@@ -95,26 +86,13 @@
         
                 var music = {
                     current: 0,
-                    audios: [
-                        new Audio(soundBaseURL + "/opening2.wav"),
-                        new Audio(soundBaseURL + "/startgame.wav"),
-                        new Audio(soundBaseURL + "/gameover.wav"),
-                        new Audio(soundBaseURL + "/levelUp.wav"),
-                        new Audio(soundBaseURL + "/startgame2.wav")
-                    ]
+                    audios: (() => ["opening2", "startgame", "gameover", "levelUp", "startgame2"]
+                        .map(audio => new Audio(soundBaseURL + "/" + audio + ".wav")))()
                 };
                 var sound = {
                     current: 0,
-                    audios: [
-                        new Audio(soundBaseURL + "/move.wav"),
-                        new Audio(soundBaseURL + "/hit.wav"),
-                        new Audio(soundBaseURL + "/move2.wav"),
-                        new Audio(soundBaseURL + "/fire.wav"),
-                        new Audio(soundBaseURL + "/score.wav"),
-                        new Audio(soundBaseURL + "/carsound1.wav"),
-                        new Audio(soundBaseURL + "/fire2.wav"),
-                        new Audio(soundBaseURL + "/select.wav")
-                    ]
+                    audios: (() => ["move", "hit", "move2", "fire", "score", "carsound1", "fire2", "select"]
+                        .map(audio => new Audio(soundBaseURL + "/" + audio + ".wav")))()
                 }
         
                 this.music = {
@@ -136,7 +114,7 @@
                 };
         
                 function play(type, index, loop, endFunction) {
-                    var audioType = type == "music" ? music: sound;
+                    var audioType = type === "music" ? music: sound;
                     var currentAudio = audioType.audios[audioType.current];
                     if(currentAudio.currentTime > 0 && !currentAudio.paused && currentAudio.readyState > 2) {
                         currentAudio.pause(); 
@@ -191,7 +169,7 @@
             };
         };
 
-        const svgNS = "http://www.w3.org/2000/svg";
+        var GameSound = BrickGameModel.gameSound;
 
         function loadTiles() {
             for (var i = 0; i < 20; i++) {
@@ -243,16 +221,10 @@
                 }
             };
         }
-        function loadData() {
-            BrickGameModel.load();
-        }
         
         function KeySound() {
             console.log("key sounds");
-        } 
-
-
-        var GameSound = BrickGameModel.gameSound;
+        }
 
         function Page() {
             var _thispage = this;
@@ -270,24 +242,14 @@
             }
             function generateRandomId() {
                 var number = Math.floor(Math.random() * 9e8) + 1e8;
-                if (brickObjects.filter(function(bo) { return bo.ID == number }).length == 0) {
-                    return number;
-                }
-                else {
-                    return generateRandomId();
-                }
+                return brickObjects.filter(bo => bo.ID === number).length == 0 ? number: generateRandomId();
             }
             function _canvasColor(color) {
-                for(var x = 0; x < 10; x++) {
-                    for(var y = 0; y < 20; y++) {
-                        changeTileColor(x, y, color);
-                    }
-                }
+                for(var x = 0; x < 10; x++)
+                    for(var y = 0; y < 20; y++) changeTileColor(x, y, color);
             }
             function setZIndices() {
-                for (var i = 0; i < brickObjects.length; i++) {
-                    brickObjects[i].zIndex = i;
-                }
+                for (var i = 0; i < brickObjects.length; i++) brickObjects[i].zIndex = i;
             }
             function paint() {
 
@@ -395,10 +357,7 @@
             } 
 
             // METHODS
-            this.canvasColor = function(color) {
-                canvas = color ? color: canvas;
-                _canvasColor(color);
-            };
+            this.canvasColor = function(color) { _canvasColor(canvas = color ? color: canvas); };
             this.keydown = function(param1, param2) {
                 var backgroundFunction;
                 var individualKeyFunctions;
@@ -462,12 +421,8 @@
                     }
                 }
             };
-            this.keyup = function(kuf) {
-                window.onkeyup = kuf;
-            };
-            this.stopTimers = function() {
-                timers.forEach(function(t) { t.stop(); }); timers = [];
-            }
+            this.keyup = kuf => window.onkeyup = kuf;
+            this.stopTimers = function() { timers.forEach(t => t.stop()); timers = []; }
             this.destroy = function() {
                 _thispage.stopTimers();
                 while (brickObjects.length > 0) brickObjects.splice(0, 1); brickObjects = [];
@@ -616,40 +571,29 @@
             {
                 left: {
                     repeat: true,
-                    _function: function() {
-                        BrickGameModel.setSpeed("down");
-                    }
+                    _function: () => BrickGameModel.setSpeed("down")
                 },
                 right: {
                     repeat: true,
-                    _function: function() {
-                        BrickGameModel.setSpeed("up");
-                    }
+                    _function: () => BrickGameModel.setSpeed("up")
                 },
                 up: {
                     repeat: true,
-                    _function: function() {
-                        BrickGameModel.setLevel("up");
-                    }
+                    _function: () => BrickGameModel.setLevel("up")
                 },
                 down: {
                     repeat: true,
-                    _function: function() {
-                        BrickGameModel.setLevel("down");
-                    }
+                    _function: () => BrickGameModel.setLevel("down")
                 },
                 space: {
                     repeat: true,
-                    _function: function() {
-                        BrickGameModel.changeGame("up");
-                    }
+                    _function: () => BrickGameModel.changeGame("up")
                 },
                 enter: function() {
                     console.log("Game started"); navigate(GamePage);
                 }
             });
 
-            console.log(BrickGameModel);
             return page;
         }
         function GamePage() {
@@ -696,7 +640,7 @@
                             left: function() { console.log("turn car left") },
                             right: function() { console.log("turn car right") },
                             space: function() { console.log("life - 1"); lifeLost(); },
-                            down: function() { score(); if (BrickGameModel.score % 20 === 0) { levelUp() } }
+                            down: function() { score(); if (BrickGameModel.getScore() % 20 === 0) { levelUp() } }
                         };
                         this.initialize = function() {
                             console.log("initialized game");
@@ -748,7 +692,6 @@
                 GameSound.stop();
                 GameSound.sound.explosion();
                 life--;
-                console.log(life);
 
                 var params = {
                     brickObjects: brickObjects,
