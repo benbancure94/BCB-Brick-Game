@@ -58,10 +58,10 @@ svg * {
 #mainContainer [data-tilecolor="black"] + *, #lifeContainer [data-tilecolor="black"] + * {
     fill: black;
 }
-#mainContainer [data-tilecolor="white"] {
+#mainContainer [data-tilecolor="white"], #lifeContainer [data-tilecolor="white"] {
     stroke: #f0f0f0;
 }
-#mainContainer [data-tilecolor="white"] + * {
+#mainContainer [data-tilecolor="white"] + *, #lifeContainer [data-tilecolor="white"] + * {
     fill: #eeeeee;
 }
 

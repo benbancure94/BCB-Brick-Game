@@ -1,10 +1,215 @@
 (function() {
     var gameData = { 
-        highscores: [20, 50, 143]
+        highscores: [20, 50, 143, 67, 100, 33, 45, 10, 33, 200, 99, 100, 57, 333, 229, 1, 2, 4, 56, 2, 43, 533, 223, 5322, 333, 99]
     };
     function BrickGame() {
         var currentpage = undefined;
         const svgNS = "http://www.w3.org/2000/svg";
+
+        var brickObjects = {
+            "4x4": (function() {
+                var tiles = [];
+                for (var x = 0; x < 4; x++) for(var y = 0; y < 4; y++) tiles.push({ x, y });
+                return tiles;
+            })(),
+            "A": (function() {
+                var tiles = [];
+                for (var y = 1; y < 5; y++) { 
+                    if (y < 4) { tiles.push({ x: y, y: 0 }); tiles.push({ x: y, y: 2 }); }
+                    tiles.push({ x: 0, y }); tiles.push({ x: 4, y }); 
+                }
+                return tiles;
+            })(),
+            "B": (function() {
+                var tiles = [];
+                for (var y = 0; y < 5; y++) tiles.push({ x: 0, y });
+                for (var x = 1; x < 4; x++) {
+                    tiles.push({ x, y: 0 }); tiles.push({ x, y: 2 }); tiles.push({ x, y: 4 });
+                }
+                tiles.push({ x: 4, y: 1 }); tiles.push({ x: 4, y: 3 });
+                return tiles;
+            })(),
+            "C": (function() {
+                var tiles = [];
+                for (var x = 1; x < 4; x++) { tiles.push({ x, y: 0 }); tiles.push({ x, y: 4 }); tiles.push({ x: 0, y: x }); }
+                tiles.push({ x: 4, y: 1 }); tiles.push({ x: 4, y: 3 });
+                return tiles;
+            })(),
+            "D": (function() {
+                var tiles = [];
+                for (var x = 0; x < 4; x++) {
+                    tiles.push({ x, y: 0 }); tiles.push({ x: 0, y: x + 1 });
+                    if (x < 3) { tiles.push({ x: x + 1, y: 4 }); tiles.push({ x: 4, y: x + 1 }); }
+                }
+                return tiles;
+            })(),
+            "E": (function() {
+                var tiles = [];
+                for (var y = 0; y < 5; y++) {
+                    tiles.push({ x: 0, y });
+                    if (y < 4) { tiles.push({ x: y + 1, y: 0 }); tiles.push({ x: y + 1, y: 2 }); tiles.push({ x: y + 1, y: 4 }); }
+                }
+                return tiles;
+            })(),
+            "F": (function() {
+                var tiles = [];
+                for (var x = 0; x < 5; x++) {
+                    tiles.push({ x, y: 0 });
+                    if (x < 4) tiles.push({ x: 0, y: x + 1 });
+                    if (x < 3) tiles.push({ x: x + 1, y: 2 });
+                }
+                return tiles;
+            })(),
+            "G": (function() {
+                var tiles = [];
+                for (var x = 1; x < 4; x++) {
+                    tiles.push({ x: x, y: 0 }); tiles.push({ x: x + 1, y: 2 }); 
+                    tiles.push({ x: x, y: 4 }); tiles.push({ x: 0, y: x });
+                }
+                tiles.push({ x: 4, y: 3 });
+                return tiles;
+            })(),
+            "H": (function() {
+                var tiles = [];
+                for (var y = 0; y < 5; y++) { tiles.push({ x: 0, y }); tiles.push({ x: 4, y }); }
+                for (var x = 1; x < 4; x++) tiles.push({ x, y: 2 });
+                return tiles;
+            })(),
+            "I": (function() {
+                var tiles = [];
+                for (var a = 0; a < 3; a++) { tiles.push({ x: a + 1, y: 0 }); tiles.push({ x: 2, y: a + 1 }); tiles.push({ x: a + 1, y: 4 }); }
+                return tiles;
+            })(),
+            "J": (function() {
+                var tiles = [];
+                for (var a = 0; a < 3; a++) { tiles.push({ x: a + 1, y: 0 }); tiles.push({ x: 2, y: a + 1 }); }
+                tiles.push({ x: 0, y: 3 }); tiles.push({ x: 1, y: 4 });
+                return tiles;
+            })(),
+            "K": (function() {
+                var tiles = [];
+                for (var y = 0; y < 5; y++) { tiles.push({ x: 0, y }); tiles.push({ x: 2 + Math.abs(y - 2), y }) }
+                tiles.push({ x: 1, y: 2 });
+                return tiles;
+            })(),
+            "L": (function() {
+                var tiles = [];
+                for (var y = 0; y < 5; y++) { tiles.push({ x: 0, y }); if (y < 4) tiles.push({ x: y + 1, y: 4 }); }
+                return tiles;
+            })(),
+            "M": (function() {
+                var tiles = [];
+                for (var y = 0; y < 5; y++) { tiles.push({ x: 0, y }); tiles.push({ x: 4, y }); }
+                for (var x = 1; x < 4; x++) tiles.push({ x, y: 2 - Math.abs(2 - x) });
+                return tiles;
+            })(),
+            "N": (function() {
+                var tiles = [];
+                for (var y = 0; y < 5; y++) { tiles.push({ x: 0, y }); tiles.push({ x: 4, y }); }
+                for (var x = 1; x < 4; x++) tiles.push({ x, y: x });
+                return tiles;
+            })(),
+            "O": (function() {
+                var tiles = [];
+                for (var x = 1; x < 4; x++) {
+                    tiles.push({ x, y: 0 }); tiles.push({ x, y: 4 });
+                    tiles.push({ x: 0, y: x }); tiles.push({ x: 4, y: x });
+                }
+                return tiles;
+            })(),
+            "P": (function() {
+                var tiles = [];
+                for (var x = 0; x < 4; x++) {
+                    tiles.push({ x, y: 0 }); tiles.push({ x: 0, y: x + 1 });
+                    if (x < 3) tiles.push({ x: x + 1, y: 2 }); else tiles.push({ x: 4, y: 1 });
+                }
+                return tiles;
+            })(),
+            "Q": (function() {
+                var tiles = [];
+                for (var x = 1; x < 4; x++) {
+                    tiles.push({ x, y: 0 }); tiles.push({ x, y: 4 });
+                    tiles.push({ x: 0, y: x }); tiles.push({ x: 4, y: x });
+                }
+                tiles.push({ x: 2, y: 2 }); tiles.push({ x: 3, y: 3 }); tiles.push({ x: 4, y: 4 });
+                return tiles;
+            })(),
+            "R": (function() {
+                var tiles = [];
+                for (var x = 0; x < 4; x++) {
+                    tiles.push({ x, y: 0 }); tiles.push({ x: 0, y: x + 1 });
+                    if (x < 3) tiles.push({ x: x + 1, y: 2 }); else tiles.push({ x: 4, y: 1 });
+                }
+                tiles.push({ x: 4, y: 3 }); tiles.push({ x: 4, y: 4 });
+                return tiles;
+            })(),
+            "S": (function() {
+                var tiles = [];
+                for (var x = 0; x < 4; x++) {
+                    tiles.push({ x: x + 1, y: 0 });
+                    if (x < 3) tiles.push({ x: x + 1, y: 2 });
+                    else { tiles.push({ x: 0, y: 1 }); tiles.push({ x: 4, y: 3 }); }
+                    tiles.push({ x, y: 4 });
+                }
+                return tiles;
+            })(),
+            "T": (function() {
+                var tiles = [];
+                for (var x = 0; x < 5; x++) {
+                    tiles.push({ x, y: 0 });
+                    if (x < 4) tiles.push({ x: 2, y: x + 1 });
+                }
+                return tiles;
+            })(),
+            "U": (function() {
+                var tiles = [];
+                for (var y = 0; y < 4; y++) {
+                    tiles.push({ x: 0, y }); tiles.push({ x: 4, y }); 
+                    if (y < 3) tiles.push({ x: y + 1, y: 4 });
+                }
+                return tiles;
+            })(),
+            "V": (function() {
+                var tiles = [];
+                for (var y = 0; y < 3; y++) {
+                    tiles.push({ x: 0, y }); tiles.push({ x: 4, y });
+                }
+                tiles.push({ x: 1, y: 3 }); tiles.push({ x: 2, y: 4 }); tiles.push({ x: 3, y: 3 });
+                return tiles;
+            })(),
+            "W": (function() {
+                var tiles = [];
+                for (var y = 0; y < 4; y++) {
+                    tiles.push({ x: 0, y }); tiles.push({ x: 4, y });
+                }
+                tiles.push({ x: 1, y: 4 }); tiles.push({ x: 3, y: 4 }); 
+                tiles.push({ x: 2, y: 2 }); tiles.push({ x: 2, y: 3 }); 
+                return tiles;
+            })(),
+            "X": (function() {
+                var tiles = [];
+                for (var y = 0; y < 5; y++) {
+                    tiles.push({ x: y, y }); if (y != 2) tiles.push({ x: 4 - y, y });
+                }
+                return tiles;
+            })(),
+            "Y": (function() {
+                var tiles = [];
+                for (var y = 0; y < 5; y++) {
+                    if (y < 2) { tiles.push({ x: y, y }); tiles.push({ x: 4 - y, y }); }
+                    else tiles.push({ x: 2, y });
+                }
+                return tiles;
+            })(),
+            "Z": (function() {
+                var tiles = [];
+                for (var x = 0; x < 5; x++) {
+                    tiles.push({ x, y: 0 }); tiles.push({ x, y: 4 });
+                    if (x > 0 && x < 4) tiles.push({ x, y: 4 - x });
+                }
+                return tiles;
+            })(),
+        }
 
         var BrickGameModel = new function() {
             var loaded = false;
@@ -14,7 +219,8 @@
                 score: 0,
                 volume: 1,
                 gameNumber: 0,
-                highScore: 0
+                highScore: 0,
+                life: 0
             };
 
             this.setLevel = function(dir) {
@@ -167,6 +373,37 @@
                     console.log(music, sound);
                 }
             };
+            this.lifeTilePanel = new function() {
+                function changeTileColor(x, y, color) {
+                    if (!color) color = "white";
+                    var outerCell = document.getElementById("lifeTileCell" + String.fromCharCode(x + 65) + String.fromCharCode(y + 65));
+                    if (outerCell) outerCell.children[0].setAttribute("data-tilecolor", color);
+                }
+                function fill(color) {
+                    for(var x = 0; x < 4; x++) for(var y = 0; y < 4; y++) changeTileColor(x, y, color);
+                }
+                this.getLife = () => data.life;
+                this.setLife = function(dir) {
+                    clearInterval(timer);
+                    if (dir === "down") {
+                        if (data.life !== 0) data.life--;
+                    }
+                    else if (typeof dir === "number") {
+                        if (dir > 4) dir = 4;
+                        else if (dir < 0) dir = 0;
+                        data.life = dir;
+                    }
+                    else {
+                        throw new Error("Invalid way of setting life value");
+                    }
+                    fill("white");
+                    for (var l = 0; l < data.life; l++) changeTileColor(0, 3 - l, "black");
+                };
+                this.blink = function() {
+                    var shown = false;
+                    timer = setInterval(function() { fill(shown ? "black": "white"); shown = !shown; }, 200);
+                };
+            }
         };
 
         var GameSound = BrickGameModel.gameSound;
@@ -226,6 +463,8 @@
             console.log("key sounds");
         }
 
+        var LifeTilePanel = BrickGameModel.lifeTilePanel;
+
         function Page() {
             var _thispage = this;
             var isMarqueePage = false;
@@ -245,8 +484,7 @@
                 return brickObjects.filter(bo => bo.ID === number).length == 0 ? number: generateRandomId();
             }
             function _canvasColor(color) {
-                for(var x = 0; x < 10; x++)
-                    for(var y = 0; y < 20; y++) changeTileColor(x, y, color);
+                for(var x = 0; x < 10; x++) for(var y = 0; y < 20; y++) changeTileColor(x, y, color);
             }
             function setZIndices() {
                 for (var i = 0; i < brickObjects.length; i++) brickObjects[i].zIndex = i;
@@ -357,7 +595,7 @@
             } 
 
             // METHODS
-            this.canvasColor = function(color) { _canvasColor(canvas = color ? color: canvas); };
+            this.canvasColor = color => _canvasColor(canvas = color ? color: canvas);
             this.keydown = function(param1, param2) {
                 var backgroundFunction;
                 var individualKeyFunctions;
@@ -517,17 +755,17 @@
 
                 function _setLocation(x, y, tiles) {
                     _bo.oldTiles = JSON.parse(JSON.stringify(_bo.tiles));
-                    if (tiles) _bo.tiles = JSON.parse(JSON.stringify(tiles));;
+                    if (tiles) _bo.tiles = JSON.parse(JSON.stringify(tiles));
                     var newTiles = _bo.tiles;
                     for (var t = 0; t < newTiles.length; t++) {
                         tileX = x + newTiles[t].x; tileY = y + newTiles[t].y;
                         newTiles[t].screenX = tileX; newTiles[t].screenY = tileY;
                     }
-                    X = x; Y = y;
                     paint();
                 }
 
-                this.setLocation = function(x, y, tiles) { _setLocation(x, y, tiles); }
+                this.setLocation = function(x, y, tiles) { _setLocation(x, y, tiles); };
+                this.setTiles = function(tiles) { _setLocation(_bo.brickLocation.x, _bo.brickLocation.y, tiles) };
                 this.remove = function() {
                     console.log(this);
                     brickObjects.splice(brickObjects.indexOf(_bo), 1);
@@ -560,12 +798,19 @@
                 GameSound.sound.select();
                 navigate(GameSelectPage);
             });
+            LifeTilePanel.blink();
             return page;
         }
         function GameSelectPage() {
             var page = new Page();
 
             BrickGameModel.setScore();
+
+            var gameChar = new page.BrickObject({ brickLocation: { x: 3, y: 1 } });
+
+            // var characterTiles = brickObjectTiles.filter(function(l) { return l.name == character }).first().tiles;
+			// var loc = brickObject.getLocation();
+			// brickObject.setLocation(loc.x, loc.y, characterTiles);
             
             page.keydown(GameSound.sound.select,
             {
@@ -587,12 +832,17 @@
                 },
                 space: {
                     repeat: true,
-                    _function: () => BrickGameModel.changeGame("up")
+                    _function: function() {
+                        BrickGameModel.changeGame("up");
+                        gameChar.setTiles(brickObjects[String.fromCharCode(BrickGameModel.currentGame() + 65)]);
+                    } 
                 },
                 enter: function() {
                     console.log("Game started"); navigate(GamePage);
                 }
             });
+
+            gameChar.setTiles(brickObjects[String.fromCharCode(BrickGameModel.currentGame() + 65)]);
 
             return page;
         }
@@ -666,7 +916,6 @@
             ];
             
             var paused = false;
-            var life = 4;
 
             var selectedGame = games[BrickGameModel.currentGame()];
             var gameplay = new selectedGame.gameplay();
@@ -691,14 +940,14 @@
             function lifeLost(brickObjects) {
                 GameSound.stop();
                 GameSound.sound.explosion();
-                life--;
+                LifeTilePanel.setLife("down");
 
                 var params = {
                     brickObjects: brickObjects,
                     interval: 400,
                     count: 3,
                     endFunction: function() {
-                        if (life === 0) {
+                        if (LifeTilePanel.getLife() === 0) {
                             page.keydown("enableAll");
                             page.keyup("enableAll");
                             console.log("game over");
@@ -735,6 +984,7 @@
             }
 
             page.keydown(keydownfunctions);
+            LifeTilePanel.setLife(4);
 
             initialize();
             return page;
@@ -757,6 +1007,7 @@
                 KeySound();
                 navigate(GameSelectPage);
             });
+            LifeTilePanel.blink();
             return page;
         }
 
