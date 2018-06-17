@@ -7,6 +7,11 @@
         const svgNS = "http://www.w3.org/2000/svg";
 
         var brickObjects = {
+            "1x3": [
+                { x: 0, y: 0 },
+                { x: 0, y: 1 },
+                { x: 0, y: 2 },
+            ],
             "4x4": (function() {
                 var tiles = [];
                 for (var x = 0; x < 4; x++) for(var y = 0; y < 4; y++) tiles.push({ x, y });
@@ -217,7 +222,7 @@
                 level: 1,
                 speed: 2,
                 score: 0,
-                volume: 1,
+                volume: 0,
                 gameNumber: 0,
                 highScore: 0,
                 life: 0
@@ -472,7 +477,7 @@
             var canvas = "white";
 
             var keydownfunction, keyupfunction, disabledkeys = [];
-            var brickObjects = [], timers = [];
+            var bos = [], timers = [];
 
             function changeTileColor(x, y, color) {
                 if (!color) color = "white";
@@ -481,38 +486,40 @@
             }
             function generateRandomId() {
                 var number = Math.floor(Math.random() * 9e8) + 1e8;
-                return brickObjects.filter(bo => bo.ID === number).length == 0 ? number: generateRandomId();
+                return bos.filter(bo => bo.ID === number).length == 0 ? number: generateRandomId();
             }
             function _canvasColor(color) {
                 for(var x = 0; x < 10; x++) for(var y = 0; y < 20; y++) changeTileColor(x, y, color);
             }
             function setZIndices() {
-                for (var i = 0; i < brickObjects.length; i++) brickObjects[i].zIndex = i;
+                for (var i = 0; i < bos.length; i++) bos[i].zIndex = i;
             }
             function paint() {
 
-                brickObjects = brickObjects.sort(function(a, b) { return a.zIndex - b.zIndex; });
+                bos = bos.sort(function(a, b) { return a.zIndex - b.zIndex; });
     
                 var index = 0;
-                while (index < brickObjects.length) {
-                    var brickObject = brickObjects[index];
+                while (index < bos.length) {
+                    var brickObject = bos[index];
                     var loc = brickObject.brickLocation;
                     var brickTiles = brickObject.oldTiles;
-                    var brickTileCount = brickTiles.length;
-                    for (var j = 0; j < brickTileCount; j++) {
-                        var brickTile = brickTiles[j];
-                        changeTileColor(brickTile.screenX, brickTile.screenY, canvas);
-                    }
+                    //if (!brickTiles.oldTiles) {
+                        var brickTileCount = brickTiles.length;
+                        for (var j = 0; j < brickTileCount; j++) {
+                            var brickTile = brickTiles[j];
+                            changeTileColor(brickTile.screenX, brickTile.screenY, canvas);
+                        }
+                    //}
     
-                    if (brickObject.tiles.length == 0 && brickObject.isRemoved) brickObjects.splice(index, 1);
+                    if (brickObject.tiles.length == 0 && brickObject.isRemoved) bos.splice(index, 1);
                     index++;
                 }
     
                 setZIndices();
                 
-                var brickObjectsLength = brickObjects.length;
+                var brickObjectsLength = bos.length;
                 for (var i = 0; i < brickObjectsLength; i++) {
-                    var brickObject = brickObjects[i];
+                    var brickObject = bos[i];
                     var brickTiles = brickObject.tiles;
                     var brickTileCount = brickTiles.length;
                     var brickColor = brickObject.visible ? brickObject.color: canvas;
@@ -529,12 +536,12 @@
                 }
     
                 // for (var i = 0; i < brickObjectsLength; i++) {
-                //     var brickObject = brickObjects[i];
+                //     var brickObject = bos[i];
                 //     var brickTiles = brickObject.tiles;
                 //     var brickTileCount = brickTiles.length;
                 //     for (var j = i + 1; j < brickObjectsLength; j++) {
                 //         var collidedLeft = false, collidedRight = false, collidedTop = false, collidedBottom = false;
-                //         var overlappedBrickObject = brickObjects[j];
+                //         var overlappedBrickObject = bos[j];
                 //         for (var t = 0; t < brickTileCount; t++) {
                 //             var overlapped = overlappedBrickObject.tiles.filter(function(tile) { 
                 //                 return tile.screenX == brickTiles[t].screenX && tile.screenY == brickTiles[t].screenY;
@@ -663,7 +670,7 @@
             this.stopTimers = function() { timers.forEach(t => t.stop()); timers = []; }
             this.destroy = function() {
                 _thispage.stopTimers();
-                while (brickObjects.length > 0) brickObjects.splice(0, 1); brickObjects = [];
+                while (bos.length > 0) bos.splice(0, 1); bos = [];
             }
             this.blinkBrickObjects = function(params) {
                 var c = 0;
@@ -680,17 +687,23 @@
             this.marquee = function(text, speedInMillis) {
                 if (!text || text === null) text = "";
                 var chars = text.split("");
-                
-                var i = 0;
+                var y = 20;
+
+                // GENERATING BRICK CHARACTER TILES
+                function marquee() {
+                    for (var i = 0; i < text.length; i++) {
+                        var bl = bos[i];
+                        if (!bl) bl = new _thispage.BrickObject({ color: "white", tiles: brickObjects[text[i]] });
+                        else bl = bl._object_;
+                        bl.setLocation(3, (6 * i) + y);
+                    }
+                    if (y < -(6 * text.length)) y = 20;
+                    else y--;
+                }
+
                 var timer = new _thispage.Timer({
                     func: function() {
-                        console.log(chars[i]);
- 
-                        i++;
-
-                        if (i === text.length) {
-                            i = 0;
-                        }
+                        marquee();
                     }, 
                     interval: speedInMillis == undefined ? 50: speedInMillis
                 });
@@ -745,9 +758,11 @@
             this.BrickObject = function(params) {
 
                 var _bo = { };
+                var X, Y;
 
                 params = params ? params: { };
-                _bo.tiles = params.tiles ? params.tiles: [];
+                _bo.tiles = JSON.parse(JSON.stringify(params.tiles ? params.tiles: []));
+                _bo.oldTiles = JSON.parse(JSON.stringify(_bo.tiles));
                 _bo.color = params.color ? params.color: "black";
                 _bo.ID = generateRandomId();
                 _bo.brickLocation = params.brickLocation;
@@ -761,17 +776,19 @@
                         tileX = x + newTiles[t].x; tileY = y + newTiles[t].y;
                         newTiles[t].screenX = tileX; newTiles[t].screenY = tileY;
                     }
+                    X = x; Y = y;
                     paint();
                 }
 
+                this.getLocation = function() { return { x: X, y: Y }; };
                 this.setLocation = function(x, y, tiles) { _setLocation(x, y, tiles); };
                 this.setTiles = function(tiles) { _setLocation(_bo.brickLocation.x, _bo.brickLocation.y, tiles) };
                 this.remove = function() {
                     console.log(this);
-                    brickObjects.splice(brickObjects.indexOf(_bo), 1);
+                    bos.splice(bos.indexOf(_bo), 1);
                 };
 
-                brickObjects.push(_bo);
+                bos.push(_bo);
 
                 if (_bo.brickLocation) _setLocation(_bo.brickLocation.x, _bo.brickLocation.y, _bo.tiles);
 
@@ -791,7 +808,7 @@
         function OpeningPage() {
             var page = new Page();
             GameSound.music.opening();
-            page.marquee("BRICK GAME", 300);
+            page.marquee("BRICK GAME");
             page.canvasColor("black");
             page.keydown(function() {
                 console.log("exited brick game marquee");
@@ -857,12 +874,38 @@
                     score: 0, 
                     speedTimeout: [300, 280, 260, 240, 220, 200, 180, 160, 140, 120],
                     gameplay: function() {
-                        var brickObject1 = new page.BrickObject({
-                            tiles: [{ x: 0, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 2 }],
-                            brickLocation: { x: 2, y: 2 }
+                        // var brickObject1 = new page.BrickObject({
+                        //     tiles: [{ x: 0, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 2 }],
+                        //     brickLocation: { x: 2, y: 2 }
+                        // });
+                        // var brickObject2 = new page.BrickObject();
+                        // var brickObject3 = new page.BrickObject();
+
+                        var sides = { 1: [], 2: [] };
+
+                        function run() {
+                            for (var i = 0; i < 6; i++) {
+                                var y = 0;
+                                if (!sides[1][i]) {
+                                    sides[1].push(new page.BrickObject({ color: "red", tiles: brickObjects["1x3"] }));
+                                    sides[2].push(new page.BrickObject({ color: "red", tiles: brickObjects["1x3"] }));
+                                    y = -3 + (i * 4);
+                                }
+                                else {
+                                    y = sides[1][i].getLocation().y + 1;
+                                }
+                                sides[1][i].setLocation(0, y > 20 ? -3: y);
+                                sides[2][i].setLocation(9, y > 20 ? -3: y);
+                            }
+                        }
+
+                        run();
+                        var tmr = new page.Timer({
+                            interval: 300,
+                            func: function() {
+                                run();
+                            }
                         });
-                        var brickObject2 = new page.BrickObject();
-                        var brickObject3 = new page.BrickObject();
 
                         this.keydown = {
                             left: function() { console.log("turn car left") },
@@ -872,10 +915,11 @@
                                 console.log(page.brickObjects);
                             },
                             down: function() {
-                                brickObject1.remove();
+                                //brickObject1.remove();
                             }
                         };
                         this.initialize = function() {
+                            tmr.start();
                             console.log("initialized game");
                         };
                     }
@@ -991,7 +1035,8 @@
         }
         function LevelUpPage() {
             var page = new Page();
-            page.marquee("LEVEL UP", 300);
+            page.canvasColor("black");
+            page.marquee("LEVEL UP");
             page.keydown("disableAll");
             GameSound.music.levelUp(function() {
                 page.keydown("enableAll");
@@ -1001,7 +1046,8 @@
         }
         function GameOverPage() {
             var page = new Page();
-            page.marquee("GAME OVER", 300);
+            page.canvasColor("black");
+            page.marquee("GAME OVER");
             page.keydown(function() {
                 console.log("exited game over marquee");
                 KeySound();

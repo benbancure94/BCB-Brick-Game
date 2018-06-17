@@ -64,4 +64,10 @@ svg * {
 #mainContainer [data-tilecolor="white"] + *, #lifeContainer [data-tilecolor="white"] + * {
     fill: #eeeeee;
 }
+#mainContainer [data-tilecolor="red"], #lifeContainer [data-tilecolor="red"] {
+    stroke: #ff5555;
+}
+#mainContainer [data-tilecolor="red"] + *, #lifeContainer [data-tilecolor="red"] + * {
+    fill: #ff0000;
+}
 
