@@ -1297,7 +1297,16 @@
                                         GameSound.sound.fire2();
                                     }
                                 }
-                                ctr--;
+                                if (!exists) ctr--;
+                            }
+
+                            if (obstacles[ctr + 1].tileCount() == 10) {
+                                obstacles[ctr + 1].remove();
+                                obstacles.splice(ctr + 1, 1);
+                                for (++ctr; ctr < obstacles.length; ctr++) {
+                                    var locy = obstacles[ctr].getLocation().y;
+                                    obstacles[ctr].setLocation(0, locy - 1);
+                                }
                             }
                         }
                         
