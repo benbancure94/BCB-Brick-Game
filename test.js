@@ -1,4 +1,11 @@
 (function() {
+    Array.prototype.clone = function() {
+        return JSON.parse(JSON.stringify(this));
+    }
+    Object.prototype.clone = function() {
+        return JSON.parse(JSON.stringify(this));
+    }
+
     var gameData = { 
         highscores: [20, 50, 143, 67, 100, 33, 45, 10, 33, 200, 99, 100, 57, 333, 229, 1, 2, 4, 56, 2, 43, 533, 223, 5322, 333, 99]
     };
@@ -214,6 +221,32 @@
                 }
                 return tiles;
             })(),
+            "car": (function() {
+                var tiles = [];
+                for (var y = -1; y <= 1; y++) {
+                    tiles.push({ x: y + 1, y: Math.abs(y) });
+                    tiles.push({ x: y + 1, y: Math.abs(y) + 2 });
+                }
+                tiles.push({ x: 1, y: 1 });
+                return tiles;
+            })(),
+            "soldier": (function() {
+                var tiles = [];
+                for (var x = -1; x <= 1; x++) {
+                    for (var y = Math.abs(x); y < 2; y++) {
+                        tiles.push({ x: x + 1, y });
+                    }
+                }
+                return tiles;
+            })(),
+            "warobstacle": function() {
+                var tiles = [];
+                for (var x = 0; x < 10; x++) {
+                    var rnd = Math.floor(Math.random() * 10) % 2;
+                    if (!!rnd) tiles.push({ x, y: 0 });
+                }
+                return tiles;
+            }
         }
 
         var BrickGameModel = new function() {
@@ -222,7 +255,7 @@
                 level: 1,
                 speed: 2,
                 score: 0,
-                volume: 0,
+                volume: 1,
                 gameNumber: 0,
                 highScore: 0,
                 life: 0
@@ -510,9 +543,10 @@
                             changeTileColor(brickTile.screenX, brickTile.screenY, canvas);
                         }
                     //}
+                   
     
                     if (brickObject.tiles.length == 0 && brickObject.isRemoved) bos.splice(index, 1);
-                    index++;
+                    else index++;
                 }
     
                 setZIndices();
@@ -527,10 +561,27 @@
                         var brickTile = brickTiles[j];
                         changeTileColor(brickTile.screenX, brickTile.screenY, brickColor);
                     }
-                    brickObject.overlappedObjects = [];
+                    brickObject.overlappedObjects = { };
                     brickObject.collidedObjects = {
                         left: [], right: [], top: [], bottom: [], all: []
                     };
+
+                    // selects all brick objects but this one
+                    var index = bos.indexOf(brickObject);
+                    var ctr = 0;
+                    var overlapped = false;
+                    while (ctr < bos.length && !overlapped) {
+                        var otherIndex = bos.indexOf(bos[ctr]);
+                        if (index != otherIndex) {
+                            overlapped = brickTiles.filter(function(bt) {
+                                return bos[ctr].tiles.filter(function(obt) {
+                                    return bt.screenX == obt.screenX && bt.screenY == obt.screenY
+                                }).length > 0;
+                            }).length > 0;
+                        }
+                        ctr++;
+                    }
+                    brickObject.overlappedObjects.overlapped = overlapped;
     
                     brickObject.oldTiles = JSON.parse(JSON.stringify(brickObject.tiles));
                 }
@@ -684,6 +735,12 @@
                     }
                 }, params.interval)
             }
+            this.removeBrickObjects = function() {
+                for (var i = 0; i < bos.length; i++) {
+                    bos[i]._object_.remove(false);
+                }
+                paint();
+            }
             this.marquee = function(text, speedInMillis) {
                 if (!text || text === null) text = "";
                 var chars = text.split("");
@@ -767,6 +824,7 @@
                 _bo.ID = generateRandomId();
                 _bo.brickLocation = params.brickLocation;
                 _bo.visible = params.visible ? params.visible: true;
+                _bo.isRemoved = false;
 
                 function _setLocation(x, y, tiles) {
                     _bo.oldTiles = JSON.parse(JSON.stringify(_bo.tiles));
@@ -780,13 +838,38 @@
                     paint();
                 }
 
+                this.index = function() { return bos.indexOf(_bo); };
+                this.tileCount = function() { return _bo.tiles.length; };
                 this.getLocation = function() { return { x: X, y: Y }; };
                 this.setLocation = function(x, y, tiles) { _setLocation(x, y, tiles); };
                 this.setTiles = function(tiles) { _setLocation(_bo.brickLocation.x, _bo.brickLocation.y, tiles) };
-                this.remove = function() {
+                this.remove = function(paintAfter) {
                     console.log(this);
-                    bos.splice(bos.indexOf(_bo), 1);
+                    _bo.isRemoved = true;
+                    _bo.tiles = [];
+                    if (paintAfter = (paintAfter == undefined ? true: paintAfter)) paint();
                 };
+                this.isOverlapped = function() {
+                    return _bo.overlappedObjects.overlapped;
+                }
+                this.hasTile = function(screenX, screenY) {
+                    return _bo.tiles.filter(function(t) {
+                        return t.screenX == screenX && t.screenY == screenY;
+                    }).length > 0;
+                };
+                this.addTile = function(screenX, screenY) {
+                    _bo.oldTiles = _bo.tiles.clone();
+                    var t = _bo.tiles[0];
+                    _bo.tiles.push({ screenX, screenY, x: (screenX - X), y: (screenY - Y) });
+                    paint();
+                }
+                this.removeTile = function(screenX, screenY) {
+                    _bo.oldTiles = _bo.tiles.clone();
+                    _bo.tiles.splice(_bo.tiles.indexOf(_bo.tiles.filter(function(t) {
+                        return t.screenX == screenX && t.screenY == screenY;
+                    })[0]), 1);
+                    paint();
+                }
 
                 bos.push(_bo);
 
@@ -874,16 +957,13 @@
                     score: 0, 
                     speedTimeout: [300, 280, 260, 240, 220, 200, 180, 160, 140, 120],
                     gameplay: function() {
-                        // var brickObject1 = new page.BrickObject({
-                        //     tiles: [{ x: 0, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 2 }],
-                        //     brickLocation: { x: 2, y: 2 }
-                        // });
-                        // var brickObject2 = new page.BrickObject();
-                        // var brickObject3 = new page.BrickObject();
 
-                        var sides = { 1: [], 2: [] };
+                        var sides = { };
+                        var myCar = { };
+                        var cars = [];
+                        var tmr = { };
 
-                        function run() {
+                        function loadSides() {
                             for (var i = 0; i < 6; i++) {
                                 var y = 0;
                                 if (!sides[1][i]) {
@@ -897,19 +977,63 @@
                                 sides[1][i].setLocation(0, y > 20 ? -3: y);
                                 sides[2][i].setLocation(9, y > 20 ? -3: y);
                             }
+
+                            for (var i = 0; i < 3; i++) {
+                                var x = 0, y = 0;
+                                if (!cars[i]) {
+                                    cars.push(new page.BrickObject({ tiles: brickObjects["car"] }));
+                                    x = ((Math.floor(Math.random() * 100) % 2) * 3) + 2;
+                                    y = -4 - (i * 10);
+                                }
+                                else {
+                                    loc = cars[i].getLocation();
+                                    if (loc.y > 24) {
+                                        x = ((Math.floor(Math.random() * 100) % 2) * 3) + 2;
+                                        y = -4;
+                                    } 
+                                    else {
+                                        x = loc.x;
+                                        y = ++loc.y;
+                                    }
+                                    if (y == 20) score();
+                                }
+                                cars[i].setLocation(x, y);
+                            }
                         }
 
-                        run();
-                        var tmr = new page.Timer({
-                            interval: 300,
-                            func: function() {
-                                run();
-                            }
-                        });
+                        function run() {
+                            loadSides();
+                            if (myCar && myCar.isOverlapped()) lifeLost();
+                        }
+
+                        function initializeBrickObjects() {
+                            sides = { 1: [], 2: [] };
+                            cars = [];
+                            myCar = new page.BrickObject({ tiles: brickObjects["car"], brickLocation: { x: 2, y: 16 } });
+                            loadSides();
+                        }
+
+                        function initializeTimers() {
+                            tmr = new page.Timer({
+                                interval: 50,
+                                func: function() {
+                                    run();
+                                }
+                            });
+                            tmr.start();
+                        }
 
                         this.keydown = {
-                            left: function() { console.log("turn car left") },
-                            right: function() { console.log("turn car right") },
+                            left: function() { 
+                                var loc = myCar.getLocation();
+                                if (loc.x != 2) myCar.setLocation(loc.x - 3, loc.y);
+                                if (myCar.isOverlapped()) lifeLost();
+                            },
+                            right: function() { 
+                                var loc = myCar.getLocation();
+                                if (loc.x != 5) myCar.setLocation(loc.x + 3, loc.y);
+                                if (myCar.isOverlapped()) lifeLost();
+                            },
                             space: function() { console.log("life - 1"); lifeLost(); },
                             up: function() { 
                                 console.log(page.brickObjects);
@@ -919,7 +1043,8 @@
                             }
                         };
                         this.initialize = function() {
-                            tmr.start();
+                            initializeBrickObjects();
+                            initializeTimers();
                             console.log("initialized game");
                         };
                     }
@@ -930,13 +1055,94 @@
                     score: 0, 
                     speedTimeout: [300, 280, 260, 240, 220, 200, 180, 160, 140, 120],
                     gameplay: function() {
+
+                        var sides = [];
+                        var myCar = { };
+                        var cars = [];
+                        var tmr = { };
+
+                        function loadSides() {
+                            for (var i = 0; i < 6; i++) {
+                                var y = 0;
+                                if (!sides[i]) {
+                                    sides.push(new page.BrickObject({ color: "red", tiles: brickObjects["1x3"] }));
+                                    y = -3 + (i * 4);
+                                }
+                                else {
+                                    y = sides[i].getLocation().y + 1;
+                                }
+                                
+                                sides[i].setLocation(9, y > 20 ? -3: y);
+                            }
+
+                            for (var i = 0; i < 3; i++) {
+                                var x = 0, y = 0;
+                                if (!cars[i]) {
+                                    cars.push(new page.BrickObject({ tiles: brickObjects["car"] }));
+                                    x = (Math.floor(Math.random() * 100) % 3) * 3;
+                                    y = -4 - (i * 10);
+                                }
+                                else {
+                                    loc = cars[i].getLocation();
+                                    if (loc.y > 24) {
+                                        x = (Math.floor(Math.random() * 100) % 3) * 3;
+                                        y = -4;
+                                    } 
+                                    else {
+                                        x = loc.x;
+                                        y = ++loc.y;
+                                    }
+                                    if (y == 20) score();
+                                }
+                                cars[i].setLocation(x, y);
+                            }
+                        }
+
+                        function run() {
+                            loadSides();
+                            if (myCar && myCar.isOverlapped()) lifeLost();
+                        }
+
+                        function initializeBrickObjects() {
+                            sides = [];
+                            cars = [];
+                            loadSides();
+                            myCar = new page.BrickObject({ tiles: brickObjects["car"], brickLocation: { x: 3, y: 16 } });
+                        }
+
+                        function initializeTimers() {
+                            tmr = new page.Timer({
+                                interval: 50,
+                                func: function() {
+                                    run();
+                                }
+                            });
+                            tmr.start();
+                        }
+
                         this.keydown = {
-                            left: function() { console.log("turn car left") },
-                            right: function() { console.log("turn car right") },
+                            left: function() { 
+                                var loc = myCar.getLocation();
+                                if (loc.x != 0) myCar.setLocation(loc.x - 3, loc.y);
+                                if (myCar.isOverlapped()) lifeLost();
+                            },
+                            right: function() { 
+                                var loc = myCar.getLocation();
+                                if (loc.x != 6) myCar.setLocation(loc.x + 3, loc.y);
+                                if (myCar.isOverlapped()) lifeLost();
+                            },
                             space: function() { console.log("life - 1"); lifeLost(); },
-                            down: function() { score(); if (BrickGameModel.getScore() % 20 === 0) { levelUp() } }
+                            up: function() { 
+                                console.log(page.brickObjects);
+                            },
+                            down: function() {
+                                //brickObject1.remove();
+                            }
                         };
                         this.initialize = function() {
+                            initializeBrickObjects();
+                            initializeTimers();
+                            tmr.start();
                             console.log("initialized game");
                         };
                     }
@@ -953,6 +1159,196 @@
                             space: function() { console.log("life - 1"); lifeLost(); } 
                         };
                         this.initialize = function() {
+                            console.log("initialized game");
+                        };
+                    }
+                },
+                {
+                    gameType: "war1", 
+                    mode: 3, 
+                    score: 0, 
+                    speedTimeout: [300, 280, 260, 240, 220, 200, 180, 160, 140, 120],
+                    gameplay: function() {
+                        var soldier = { };
+                        var obstacles = [];
+                        var tmr = { };
+
+                        function run() {
+                            // trim
+                            obstacles = obstacles.filter(function(o) {
+                                return o.tileCount() > 0;
+                            });
+
+                            if (obstacles[obstacles.length - 1].getLocation().y < 17) {
+                                for (var i = 0; i < obstacles.length; i++) {
+                                    var loc = obstacles[i].getLocation();
+                                    obstacles[i].setLocation(loc.x, ++loc.y);
+                                }
+                                obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: 0 } }));
+                            }
+                            else lifeLost();
+                        }
+
+                        function fire() {
+                            var exists = false;
+                            var ctr = obstacles.length - 1;
+                            while (obstacles.length > 0 && !exists && ctr >= 0) {
+                                var locy = obstacles[ctr].getLocation().y;
+                                var slocx = soldier.getLocation().x;
+                                if (exists = obstacles[ctr].hasTile(slocx + 1, locy)) {
+                                    obstacles[ctr].removeTile(slocx + 1, locy);
+                                    GameSound.sound.fire();
+                                    score();
+                                }
+                                ctr--;
+                            }
+                        }
+
+                        function initializeBrickObjects() {
+                            obstacles = [];
+                            soldier = new page.BrickObject({ tiles: brickObjects["soldier"], brickLocation: { x: 4, y: 18 } });
+                            for (var i = 9; i >= 0; i--) {
+                                obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: i } }));
+                            }
+                        }
+
+                        function initializeTimers() {
+                            tmr = new page.Timer({
+                                interval: 500,
+                                func: function() {
+                                    run();
+                                }
+                            });
+                            tmr.start();
+                        }
+
+                        this.keydown = {
+                            left: { 
+                                _function: function() { 
+                                    var loc = soldier.getLocation();
+                                    if (loc.x != -1) {
+                                        soldier.setLocation(--loc.x, loc.y);
+                                        GameSound.sound.move();
+                                    }
+                                },
+                                repeat: true
+                            },
+                            right: {
+                                _function: function() {
+                                    var loc = soldier.getLocation();
+                                    if (loc.x != 8) {
+                                        soldier.setLocation(++loc.x, loc.y);
+                                        GameSound.sound.move();
+                                    }
+                                },
+                                repeat: true
+                            },
+                            space: { 
+                                _function: function() { fire(); },
+                                repeat: true
+                            }
+                        };
+                        this.initialize = function() {
+                            initializeBrickObjects();
+                            initializeTimers();
+                            console.log("initialized game");
+                        };
+                    }
+                },
+                {
+                    gameType: "war2", 
+                    mode: 3, 
+                    score: 0, 
+                    speedTimeout: [300, 280, 260, 240, 220, 200, 180, 160, 140, 120],
+                    gameplay: function() {
+                        var soldier = { };
+                        var obstacles = [];
+                        var tmr = { };
+
+                        function run() {
+                            // trim
+                            obstacles = obstacles.filter(function(o) {
+                                return o.tileCount() > 0;
+                            });
+
+                            if (obstacles[obstacles.length - 1].getLocation().y < 17) {
+                                for (var i = 0; i < obstacles.length; i++) {
+                                    var loc = obstacles[i].getLocation();
+                                    console.log(loc.x, loc.y);
+                                    obstacles[i].setLocation(loc.x, ++loc.y);
+                                }
+                                obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: 0 } }));
+                            }
+                            else lifeLost();
+                        }
+
+                        function fire() {
+                            var exists = false, exists2 = false;
+                            var ctr = obstacles.length - 1;
+                            while (!exists && ctr >= 0) {
+                                var locy = obstacles[ctr].getLocation().y;
+                                var slocx = soldier.getLocation().x;
+                                if (exists = ctr == 0 || obstacles[ctr].hasTile(slocx + 1, locy)) {
+                                    if (ctr < 17) {
+                                        if (ctr + 1 == obstacles.length) {
+                                            obstacles.push(new page.BrickObject({ tiles: [], brickLocation: { x: 0, y: ctr + 1 } }));
+                                        }
+                                        obstacles[ctr + 1].addTile(slocx + 1, locy + 1);
+                                        GameSound.sound.fire2();
+                                    }
+                                }
+                                ctr--;
+                            }
+                        }
+                        
+                        function initializeBrickObjects() {
+                            obstacles = [];
+                            soldier = new page.BrickObject({ tiles: brickObjects["soldier"], brickLocation: { x: 4, y: 18 } });
+                            for (var i = 9; i >= 0; i--) {
+                                console.log(i);
+                                obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: i } }));
+                            }
+                        }
+
+                        function initializeTimers() {
+                            tmr = new page.Timer({
+                                interval: 5000,
+                                func: function() {
+                                    run();
+                                }
+                            });
+                            tmr.start();
+                        }
+
+                        this.keydown = {
+                            left: { 
+                                _function: function() { 
+                                    var loc = soldier.getLocation();
+                                    if (loc.x != -1) {
+                                        soldier.setLocation(--loc.x, loc.y);
+                                        GameSound.sound.move();
+                                    }
+                                },
+                                repeat: true
+                            },
+                            right: {
+                                _function: function() {
+                                    var loc = soldier.getLocation();
+                                    if (loc.x != 8) {
+                                        soldier.setLocation(++loc.x, loc.y);
+                                        GameSound.sound.move();
+                                    }
+                                },
+                                repeat: true
+                            },
+                            space: {
+                                repeat: true,
+                                _function: function() { fire(); }
+                            } 
+                        };
+                        this.initialize = function() {
+                            initializeBrickObjects();
+                            initializeTimers();
                             console.log("initialized game");
                         };
                     }
@@ -1003,6 +1399,8 @@
                             setTimeout(function() { 
                                 page.keydown("enableAll");
                                 page.keyup("enableAll");
+                                // remove all brick objects if exists
+                                page.removeBrickObjects();
                                 initialize();
                             }, 2000);
                         }
@@ -1023,6 +1421,7 @@
                 navigate(LevelUpPage);
             }
             function initialize() {
+                
                 GameSound.music.startGame();
                 gameplay.initialize();
             }
@@ -1072,3 +1471,4 @@
     }
     BrickGame();
 })();
+
