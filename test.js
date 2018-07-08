@@ -240,13 +240,27 @@
                 return tiles;
             })(),
             "warobstacle": function() {
-                var tiles = [];
+                var tiles = []; 
+                var t = 0;
                 for (var x = 0; x < 10; x++) {
                     var rnd = Math.floor(Math.random() * 10) % 2;
-                    if (!!rnd) tiles.push({ x, y: 0 });
+                    rnd = (!!rnd && t < 9) || (t == 0 && x == 9);
+                    if (rnd) { 
+                        tiles.push({ x, y: 0 }); t++; 
+                    }
                 }
                 return tiles;
-            }
+            },
+            "rectTiles": function(w, h) {
+                var tiles = [];
+                for(var x = 0; x < w; x++) {
+                    for (var y = 0; y < h; y++) {
+                        tiles.push({ x, y });
+                    }
+                } 
+                return tiles;
+            },
+            "pinballTile1": [{"x":7,"y":0},{"x":6,"y":0},{"x":2,"y":0},{"x":1,"y":0},{"x":8,"y":1},{"x":5,"y":1},{"x":3,"y":1},{"x":0,"y":1},{"x":8,"y":2},{"x":4,"y":2},{"x":0,"y":2},{"x":7,"y":3},{"x":1,"y":3},{"x":6,"y":4},{"x":2,"y":4},{"x":5,"y":5},{"x":3,"y":5},{"x":4,"y":6}]
         }
 
         var BrickGameModel = new function() {
@@ -330,7 +344,7 @@
         
                 var music = {
                     current: 0,
-                    audios: (() => ["opening2", "startgame", "gameover", "levelUp", "startgame2"]
+                    audios: (() => ["opening", "startgame", "gameover", "levelUp", "startgame2"]
                         .map(audio => new Audio(soundBaseURL + "/" + audio + ".wav")))()
                 };
                 var sound = {
@@ -559,7 +573,7 @@
                     var brickColor = brickObject.visible ? brickObject.color: canvas;
                     for (var j = 0; j < brickTileCount; j++) {
                         var brickTile = brickTiles[j];
-                        changeTileColor(brickTile.screenX, brickTile.screenY, brickColor);
+                        if (brickObject.visible) changeTileColor(brickTile.screenX, brickTile.screenY, brickColor);
                     }
                     brickObject.overlappedObjects = { };
                     brickObject.collidedObjects = {
@@ -728,6 +742,11 @@
                 if (!params.endFunction) params.endFunction = function() { };
                 var interval = setInterval(function() {
                     console.log(c % 2 == 0 ? "blink off": "blink on");
+                    for(var a = 0; a < params.brickObjects.length; a++) {
+                        var bo = params.brickObjects[a];
+                        if (c % 2 == 0) bo.hide();
+                        else bo.show();
+                    }
                     c++;
                     if (c === params.count * 2) {
                         clearInterval(interval);
@@ -849,6 +868,14 @@
                     _bo.tiles = [];
                     if (paintAfter = (paintAfter == undefined ? true: paintAfter)) paint();
                 };
+                this.hide = function() {
+                    _bo.visible = false;
+                    paint();
+                };
+                this.show = function() {
+                    _bo.visible = true;
+                    paint();
+                }
                 this.isOverlapped = function() {
                     return _bo.overlappedObjects.overlapped;
                 }
@@ -1003,7 +1030,9 @@
 
                         function run() {
                             loadSides();
-                            if (myCar && myCar.isOverlapped()) lifeLost();
+                            if (myCar && myCar.isOverlapped()) {
+                                lifeLost(myCar);
+                            }
                         }
 
                         function initializeBrickObjects() {
@@ -1027,12 +1056,12 @@
                             left: function() { 
                                 var loc = myCar.getLocation();
                                 if (loc.x != 2) myCar.setLocation(loc.x - 3, loc.y);
-                                if (myCar.isOverlapped()) lifeLost();
+                                if (myCar.isOverlapped()) lifeLost(myCar);
                             },
                             right: function() { 
                                 var loc = myCar.getLocation();
                                 if (loc.x != 5) myCar.setLocation(loc.x + 3, loc.y);
-                                if (myCar.isOverlapped()) lifeLost();
+                                if (myCar.isOverlapped()) lifeLost(myCar);
                             },
                             space: function() { console.log("life - 1"); lifeLost(); },
                             up: function() { 
@@ -1100,7 +1129,7 @@
 
                         function run() {
                             loadSides();
-                            if (myCar && myCar.isOverlapped()) lifeLost();
+                            if (myCar && myCar.isOverlapped()) lifeLost(myCar);
                         }
 
                         function initializeBrickObjects() {
@@ -1124,14 +1153,14 @@
                             left: function() { 
                                 var loc = myCar.getLocation();
                                 if (loc.x != 0) myCar.setLocation(loc.x - 3, loc.y);
-                                if (myCar.isOverlapped()) lifeLost();
+                                if (myCar.isOverlapped()) lifeLost(myCar);
                             },
                             right: function() { 
                                 var loc = myCar.getLocation();
                                 if (loc.x != 6) myCar.setLocation(loc.x + 3, loc.y);
-                                if (myCar.isOverlapped()) lifeLost();
+                                if (myCar.isOverlapped()) lifeLost(myCar);
                             },
-                            space: function() { console.log("life - 1"); lifeLost(); },
+                            space: function() { console.log("life - 1"); },
                             up: function() { 
                                 console.log(page.brickObjects);
                             },
@@ -1186,7 +1215,7 @@
                                 }
                                 obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: 0 } }));
                             }
-                            else lifeLost();
+                            else lifeLost(soldier);
                         }
 
                         function fire() {
@@ -1207,8 +1236,8 @@
                         function initializeBrickObjects() {
                             obstacles = [];
                             soldier = new page.BrickObject({ tiles: brickObjects["soldier"], brickLocation: { x: 4, y: 18 } });
-                            for (var i = 9; i >= 0; i--) {
-                                obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: i } }));
+                            for (var i = 0; i < 10; i++) {
+                                obstacles.push(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: i } }));
                             }
                         }
 
@@ -1279,21 +1308,22 @@
                                 }
                                 obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: 0 } }));
                             }
-                            else lifeLost();
+                            else lifeLost(soldier);
                         }
 
                         function fire() {
                             var exists = false, exists2 = false;
                             var ctr = obstacles.length - 1;
-                            while (!exists && ctr >= 0) {
-                                var locy = obstacles[ctr].getLocation().y;
-                                var slocx = soldier.getLocation().x;
-                                if (exists = ctr == 0 || obstacles[ctr].hasTile(slocx + 1, locy)) {
+                            var slocx = soldier.getLocation().x;
+                            var locy = 0;
+                            while (!exists) {
+                                var obst = obstacles[ctr];
+                                if (exists = ctr == -1 || obstacles[ctr].hasTile(slocx + 1, locy = obst.getLocation().y)) {
                                     if (ctr < 17) {
                                         if (ctr + 1 == obstacles.length) {
                                             obstacles.push(new page.BrickObject({ tiles: [], brickLocation: { x: 0, y: ctr + 1 } }));
                                         }
-                                        obstacles[ctr + 1].addTile(slocx + 1, locy + 1);
+                                        obstacles[ctr + 1].addTile(slocx + 1, ctr == -1 ? 0: ++locy);
                                         GameSound.sound.fire2();
                                     }
                                 }
@@ -1301,11 +1331,28 @@
                             }
 
                             if (obstacles[ctr + 1].tileCount() == 10) {
-                                obstacles[ctr + 1].remove();
-                                obstacles.splice(ctr + 1, 1);
-                                for (++ctr; ctr < obstacles.length; ctr++) {
-                                    var locy = obstacles[ctr].getLocation().y;
-                                    obstacles[ctr].setLocation(0, locy - 1);
+                                tmr.pause();
+                                page.keydown("disableAll");
+                                GameSound.sound.score();
+                                score();
+
+                                var rr = locy;
+                                var t = 4; 
+                                var splice = setInterval(splicef, 50);
+                                function splicef(locy) {
+                                    obstacles[ctr + 1].removeTile(t, rr);
+                                    obstacles[ctr + 1].removeTile(9 - t, rr);
+                                    if (t > 0) t--;
+                                    else {
+                                        clearInterval(splice);
+                                        obstacles.splice(ctr + 1, 1);
+                                        for (++ctr; ctr < obstacles.length; ctr++) {
+                                            var locy = obstacles[ctr].getLocation().y;
+                                            obstacles[ctr].setLocation(0, locy - 1);
+                                        }
+                                        page.keydown("enableAll");
+                                        tmr.start();
+                                    }
                                 }
                             }
                         }
@@ -1313,9 +1360,9 @@
                         function initializeBrickObjects() {
                             obstacles = [];
                             soldier = new page.BrickObject({ tiles: brickObjects["soldier"], brickLocation: { x: 4, y: 18 } });
-                            for (var i = 9; i >= 0; i--) {
+                            for (var i = 0; i < 10; i++) {
                                 console.log(i);
-                                obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: i } }));
+                                obstacles.push(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: i } }));
                             }
                         }
 
@@ -1361,6 +1408,190 @@
                             console.log("initialized game");
                         };
                     }
+                },
+                {
+                    gameType: "pinball1", 
+                    mode: 3, 
+                    score: 0, 
+                    speedTimeout: [300, 280, 260, 240, 220, 200, 180, 160, 140, 120],
+                    gameplay: function() {
+                        var pinballTile = { }, pinballCatcher = { }, pinball = { };
+                        var obstacles = [];
+                        var tmr = { };
+                        var rolled = false, bumped = false;
+                        var d_h = 1;
+                        var d_v = -1;
+                        var condition = false
+
+                        function roll() {
+                            var loc = pinball.getLocation();
+                            var conditions = [
+                                loc.x == 0,
+                                loc.x == 9,
+                                loc.y == 0,
+                                loc.y == 19
+                            ];
+
+                            // while(condition = ) {
+
+                            // }
+
+                            // if (loc.x == 0) d_h = 1; else if (loc.x == 9) d_h = -1;
+                            // if (loc.y == 0) d_v = 1; else if (loc.y == 19) d_v = -1;
+
+                            if (
+                                loc.x == 0 || loc.x == 9 || loc.y == 0 || loc.y == 19 ||
+                                pinballCatcher.hasTile(loc.x + d_h, loc.y + d_v) || 
+                                pinballTile.hasTile(loc.x + d_h, loc.y + d_v)
+                            ) { 
+                                if (loc.x == 0 || loc.x == 9 || !pinballCatcher.hasTile(loc.x, loc.y + 1)) d_h = -d_h; 
+                                if (loc.y == 0 || loc.y == 19) d_v = -d_v; 
+                            }
+
+                            //else if (pinballCatcher.hasTile(loc.x - d_h, loc.y + d_v)) { d_h = 1; d_v = -1; }
+                            // .hasTile(loc.x, loc.y + 1) dvdf
+                            // if (pinballTile.hasTile(loc.x, loc.y - 1)) d_v = 1;
+                            // else if (pinballTile.hasTile(loc.x - 1, loc.y - 1) && d) 
+
+                            //if (pinballCatcher.hasTile(loc.x + 1, loc.y + 1))
+
+                            pinball.setLocation(loc.x + d_h, loc.y + d_v);
+                        }
+
+                        function initializeTimers() {
+                            tmr = new page.Timer({
+                                interval: 100,
+                                func: function() {
+                                    roll();
+                                }
+                            });
+                            tmr.start();
+                        }
+
+                        // function run() {
+                        //     // trim
+                        //     obstacles = obstacles.filter(function(o) {
+                        //         return o.tileCount() > 0;
+                        //     });
+
+                        //     if (obstacles[obstacles.length - 1].getLocation().y < 17) {
+                        //         for (var i = 0; i < obstacles.length; i++) {
+                        //             var loc = obstacles[i].getLocation();
+                        //             console.log(loc.x, loc.y);
+                        //             obstacles[i].setLocation(loc.x, ++loc.y);
+                        //         }
+                        //         obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: 0 } }));
+                        //     }
+                        //     else lifeLost(soldier);
+                        // }
+
+                        // function fire() {
+                        //     var exists = false, exists2 = false;
+                        //     var ctr = obstacles.length - 1;
+                        //     var slocx = soldier.getLocation().x;
+                        //     var locy = 0;
+                        //     while (!exists) {
+                        //         var obst = obstacles[ctr];
+                        //         if (exists = ctr == -1 || obstacles[ctr].hasTile(slocx + 1, locy = obst.getLocation().y)) {
+                        //             if (ctr < 17) {
+                        //                 if (ctr + 1 == obstacles.length) {
+                        //                     obstacles.push(new page.BrickObject({ tiles: [], brickLocation: { x: 0, y: ctr + 1 } }));
+                        //                 }
+                        //                 obstacles[ctr + 1].addTile(slocx + 1, ctr == -1 ? 0: ++locy);
+                        //                 GameSound.sound.fire2();
+                        //             }
+                        //         }
+                        //         if (!exists) ctr--;
+                        //     }
+
+                        //     if (obstacles[ctr + 1].tileCount() == 10) {
+                        //         tmr.pause();
+                        //         page.keydown("disableAll");
+                        //         GameSound.sound.score();
+                        //         score();
+
+                        //         var rr = locy;
+                        //         var t = 4; 
+                        //         var splice = setInterval(splicef, 50);
+                        //         function splicef(locy) {
+                        //             obstacles[ctr + 1].removeTile(t, rr);
+                        //             obstacles[ctr + 1].removeTile(9 - t, rr);
+                        //             if (t > 0) t--;
+                        //             else {
+                        //                 clearInterval(splice);
+                        //                 obstacles.splice(ctr + 1, 1);
+                        //                 for (++ctr; ctr < obstacles.length; ctr++) {
+                        //                     var locy = obstacles[ctr].getLocation().y;
+                        //                     obstacles[ctr].setLocation(0, locy - 1);
+                        //                 }
+                        //                 page.keydown("enableAll");
+                        //                 tmr.start();
+                        //             }
+                        //         }
+                        //     }
+                        // }
+                        
+                        function initializeBrickObjects() {
+                            pinballTile = new page.BrickObject({
+                                brickLocation: { x: 0, y: 0 },
+                                tiles: brickObjects["pinballTile1"]
+                            });
+                            pinballCatcher = new page.BrickObject({
+                                brickLocation: { x: 3, y: 19 },
+                                tiles: brickObjects["rectTiles"](4, 1)
+                            });
+                            pinball = new page.BrickObject({
+                                brickLocation: { x: 4, y: 18 },
+                                tiles: [{ x: 0, y: 0 }],
+                                color: "green"
+                            })
+                        }
+
+                        // function initializeTimers() {
+                        //     tmr = new page.Timer({
+                        //         interval: 5000,
+                        //         func: function() {
+                        //             run();
+                        //         }
+                        //     });
+                        //     tmr.start();
+                        // }
+
+                        this.keydown = {
+                            left: { 
+                                _function: function() { 
+                                    var loc = pinballCatcher.getLocation();
+                                    var ploc = pinball.getLocation();
+                                    if (loc.x != 0) {
+                                        pinballCatcher.setLocation(loc.x - 1, loc.y);
+                                        if (ploc.y == 18) pinball.setLocation(ploc.x - 1, 18);
+                                    }
+                                },
+                                repeat: true
+                            },
+                            right: {
+                                _function: function() { 
+                                    var loc = pinballCatcher.getLocation();
+                                    var ploc = pinball.getLocation();
+                                    if (loc.x != 6) {
+                                        pinballCatcher.setLocation(loc.x + 1, loc.y);
+                                        if (ploc.y == 18) pinball.setLocation(ploc.x + 1, 18);
+                                    }
+                                },
+                                repeat: true
+                            },
+                            space: {
+                                repeat: true,
+                                _function: function() { fire(); }
+                            } 
+                        };
+                        this.initialize = function() {
+                            rolled = false;
+                            initializeBrickObjects();
+                            initializeTimers();
+                            console.log("initialized game");
+                        };
+                    }
                 }
             ];
             
@@ -1386,7 +1617,7 @@
 
             console.log("Game started");
 
-            function lifeLost(brickObjects) {
+            function lifeLost(...brickObjects) {
                 GameSound.stop();
                 GameSound.sound.explosion();
                 LifeTilePanel.setLife("down");

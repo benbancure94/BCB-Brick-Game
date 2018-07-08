@@ -70,4 +70,10 @@ svg * {
 #mainContainer [data-tilecolor="red"] + *, #lifeContainer [data-tilecolor="red"] + * {
     fill: #ff0000;
 }
+#mainContainer [data-tilecolor="green"], #lifeContainer [data-tilecolor="green"] {
+    stroke: #55ff55;
+}
+#mainContainer [data-tilecolor="green"] + *, #lifeContainer [data-tilecolor="green"] + * {
+    fill: #00ff00;
+}
 
