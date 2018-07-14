@@ -269,7 +269,7 @@
                 level: 1,
                 speed: 2,
                 score: 0,
-                volume: 1,
+                volume: 0,
                 gameNumber: 0,
                 highScore: 0,
                 life: 0
@@ -1421,10 +1421,17 @@
                         var rolled = false, bumped = false;
                         var d_h = 1;
                         var d_v = -1;
-                        var condition = false
+                        var condition = false;
+
+                        function score(x, y) {
+                            var scored = pinballTile.hasTile(x, y);
+                            if (scored) pinballTile.removeTile(x, y);
+                            return scored;
+                        }
 
                         function roll() {
                             var loc = pinball.getLocation();
+                            var bumpedx = false, bumpedy = false;
                             var conditions = [
                                 loc.x == 0,
                                 loc.x == 9,
@@ -1432,28 +1439,36 @@
                                 loc.y == 19
                             ];
 
-                            // while(condition = ) {
+                            do {
+                                bumpedx = false; bumpedy = false;
 
-                            // }
+                                if (
+                                    (loc.x == 0 && d_h == -1) ||
+                                    (loc.x == 9 && d_h == 1) ||
+                                    (score(loc.x + d_h, loc.y))
+                                ) {
+                                    bumpedx = true;
+                                }
 
-                            // if (loc.x == 0) d_h = 1; else if (loc.x == 9) d_h = -1;
-                            // if (loc.y == 0) d_v = 1; else if (loc.y == 19) d_v = -1;
+                                else if (
+                                    (loc.y == 0 && d_v == -1) ||
+                                    (loc.y == 19 && d_v == 1) ||
+                                    pinballCatcher.hasTile(loc.x, loc.y + d_v) ||
+                                    score(loc.x, loc.y + d_v)
+                                ) {
+                                    bumpedy = true;
+                                }
 
-                            if (
-                                loc.x == 0 || loc.x == 9 || loc.y == 0 || loc.y == 19 ||
-                                pinballCatcher.hasTile(loc.x + d_h, loc.y + d_v) || 
-                                pinballTile.hasTile(loc.x + d_h, loc.y + d_v)
-                            ) { 
-                                if (loc.x == 0 || loc.x == 9 || !pinballCatcher.hasTile(loc.x, loc.y + 1)) d_h = -d_h; 
-                                if (loc.y == 0 || loc.y == 19) d_v = -d_v; 
-                            }
+                                else if (
+                                    pinballCatcher.hasTile(loc.x + d_h, loc.y + d_v) ||
+                                    score(loc.x + d_h, loc.y + d_v)
+                                ) {
+                                    bumpedx = true; bumpedy = true;
+                                }
 
-                            //else if (pinballCatcher.hasTile(loc.x - d_h, loc.y + d_v)) { d_h = 1; d_v = -1; }
-                            // .hasTile(loc.x, loc.y + 1) dvdf
-                            // if (pinballTile.hasTile(loc.x, loc.y - 1)) d_v = 1;
-                            // else if (pinballTile.hasTile(loc.x - 1, loc.y - 1) && d) 
-
-                            //if (pinballCatcher.hasTile(loc.x + 1, loc.y + 1))
+                                if (bumpedx) d_h = -d_h;
+                                if (bumpedy) d_v = -d_v;
+                            } while(bumpedx || bumpedy)
 
                             pinball.setLocation(loc.x + d_h, loc.y + d_v);
                         }
