@@ -269,7 +269,7 @@
                 level: 1,
                 speed: 2,
                 score: 0,
-                volume: 0,
+                volume: 1,
                 gameNumber: 0,
                 highScore: 0,
                 life: 0
@@ -884,6 +884,9 @@
                         return t.screenX == screenX && t.screenY == screenY;
                     }).length > 0;
                 };
+                this.getTiles = function() {
+                    return _bo.tiles;
+                }
                 this.addTile = function(screenX, screenY) {
                     _bo.oldTiles = _bo.tiles.clone();
                     var t = _bo.tiles[0];
@@ -1418,26 +1421,25 @@
                         var pinballTile = { }, pinballCatcher = { }, pinball = { };
                         var obstacles = [];
                         var tmr = { };
-                        var rolled = false, bumped = false;
+                        var isRolled = false, isBumped = false, isCaught = false, isHit = false;
                         var d_h = 1;
                         var d_v = -1;
                         var condition = false;
 
-                        function score(x, y) {
-                            var scored = pinballTile.hasTile(x, y);
-                            if (scored) pinballTile.removeTile(x, y);
-                            return scored;
-                        }
+                        var tiles = brickObjects["pinballTile1"];
 
                         function roll() {
                             var loc = pinball.getLocation();
                             var bumpedx = false, bumpedy = false;
-                            var conditions = [
-                                loc.x == 0,
-                                loc.x == 9,
-                                loc.y == 0,
-                                loc.y == 19
-                            ];
+                            
+                            function hit(x, y) {
+                                var scored = pinballTile.hasTile(x, y);
+                                if (scored) {
+                                    pinballTile.removeTile(x, y);
+                                    score();
+                                }
+                                return scored;
+                            }
 
                             do {
                                 bumpedx = false; bumpedy = false;
@@ -1445,7 +1447,7 @@
                                 if (
                                     (loc.x == 0 && d_h == -1) ||
                                     (loc.x == 9 && d_h == 1) ||
-                                    (score(loc.x + d_h, loc.y))
+                                    (isHit = hit(loc.x + d_h, loc.y))
                                 ) {
                                     bumpedx = true;
                                 }
@@ -1453,24 +1455,35 @@
                                 else if (
                                     (loc.y == 0 && d_v == -1) ||
                                     (loc.y == 19 && d_v == 1) ||
-                                    pinballCatcher.hasTile(loc.x, loc.y + d_v) ||
-                                    score(loc.x, loc.y + d_v)
+                                    (isCaught = pinballCatcher.hasTile(loc.x, loc.y + d_v)) ||
+                                    (isHit = hit(loc.x, loc.y + d_v))
                                 ) {
                                     bumpedy = true;
                                 }
 
                                 else if (
-                                    pinballCatcher.hasTile(loc.x + d_h, loc.y + d_v) ||
-                                    score(loc.x + d_h, loc.y + d_v)
+                                    (isCaught = pinballCatcher.hasTile(loc.x + d_h, loc.y + d_v)) ||
+                                    (isHit = hit(loc.x + d_h, loc.y + d_v))
                                 ) {
                                     bumpedx = true; bumpedy = true;
                                 }
 
                                 if (bumpedx) d_h = -d_h;
                                 if (bumpedy) d_v = -d_v;
+
+                                isBumped = loc.x === 0 || loc.x === 9 || loc.y === 0 || loc.y === 19;
+
+                                if (isCaught) GameSound.sound.move();
+                                else if (isBumped) GameSound.sound.move2();
+                                else if (isHit) GameSound.sound.fire();
                             } while(bumpedx || bumpedy)
 
-                            pinball.setLocation(loc.x + d_h, loc.y + d_v);
+                            pinball.setLocation(loc.x + d_h, loc.y += d_v);
+
+                            if (loc.y == 19) {
+                                tiles = pinballTile.getTiles();
+                                lifeLost(pinball, pinballCatcher);
+                            }
                         }
 
                         function initializeTimers() {
@@ -1482,74 +1495,10 @@
                             });
                             tmr.start();
                         }
-
-                        // function run() {
-                        //     // trim
-                        //     obstacles = obstacles.filter(function(o) {
-                        //         return o.tileCount() > 0;
-                        //     });
-
-                        //     if (obstacles[obstacles.length - 1].getLocation().y < 17) {
-                        //         for (var i = 0; i < obstacles.length; i++) {
-                        //             var loc = obstacles[i].getLocation();
-                        //             console.log(loc.x, loc.y);
-                        //             obstacles[i].setLocation(loc.x, ++loc.y);
-                        //         }
-                        //         obstacles.unshift(new page.BrickObject({ tiles: brickObjects["warobstacle"](), brickLocation: { x: 0, y: 0 } }));
-                        //     }
-                        //     else lifeLost(soldier);
-                        // }
-
-                        // function fire() {
-                        //     var exists = false, exists2 = false;
-                        //     var ctr = obstacles.length - 1;
-                        //     var slocx = soldier.getLocation().x;
-                        //     var locy = 0;
-                        //     while (!exists) {
-                        //         var obst = obstacles[ctr];
-                        //         if (exists = ctr == -1 || obstacles[ctr].hasTile(slocx + 1, locy = obst.getLocation().y)) {
-                        //             if (ctr < 17) {
-                        //                 if (ctr + 1 == obstacles.length) {
-                        //                     obstacles.push(new page.BrickObject({ tiles: [], brickLocation: { x: 0, y: ctr + 1 } }));
-                        //                 }
-                        //                 obstacles[ctr + 1].addTile(slocx + 1, ctr == -1 ? 0: ++locy);
-                        //                 GameSound.sound.fire2();
-                        //             }
-                        //         }
-                        //         if (!exists) ctr--;
-                        //     }
-
-                        //     if (obstacles[ctr + 1].tileCount() == 10) {
-                        //         tmr.pause();
-                        //         page.keydown("disableAll");
-                        //         GameSound.sound.score();
-                        //         score();
-
-                        //         var rr = locy;
-                        //         var t = 4; 
-                        //         var splice = setInterval(splicef, 50);
-                        //         function splicef(locy) {
-                        //             obstacles[ctr + 1].removeTile(t, rr);
-                        //             obstacles[ctr + 1].removeTile(9 - t, rr);
-                        //             if (t > 0) t--;
-                        //             else {
-                        //                 clearInterval(splice);
-                        //                 obstacles.splice(ctr + 1, 1);
-                        //                 for (++ctr; ctr < obstacles.length; ctr++) {
-                        //                     var locy = obstacles[ctr].getLocation().y;
-                        //                     obstacles[ctr].setLocation(0, locy - 1);
-                        //                 }
-                        //                 page.keydown("enableAll");
-                        //                 tmr.start();
-                        //             }
-                        //         }
-                        //     }
-                        // }
                         
                         function initializeBrickObjects() {
                             pinballTile = new page.BrickObject({
-                                brickLocation: { x: 0, y: 0 },
-                                tiles: brickObjects["pinballTile1"]
+                                brickLocation: { x: 0, y: 0 }, tiles
                             });
                             pinballCatcher = new page.BrickObject({
                                 brickLocation: { x: 3, y: 19 },
@@ -1601,7 +1550,161 @@
                             } 
                         };
                         this.initialize = function() {
-                            rolled = false;
+                            isRolled = false;
+                            initializeBrickObjects();
+                            initializeTimers();
+                            console.log("initialized game");
+                        };
+                    }
+                },
+                {
+                    gameType: "pinball2", 
+                    mode: 3, 
+                    score: 0, 
+                    speedTimeout: [300, 280, 260, 240, 220, 200, 180, 160, 140, 120],
+                    gameplay: function() {
+                        var pinballTile = { }, pinballCatcher1 = { }, pinballCatcher2 = { }, pinball = { };
+                        var obstacles = [];
+                        var tmr = { };
+                        var isRolled = false, isBumped = false, isCaught = false, isHit = false;
+                        var d_h = 1;
+                        var d_v = -1;
+                        var condition = false;
+
+                        var tiles = brickObjects["pinballTile1"];
+
+                        function roll() {
+                            var loc = pinball.getLocation();
+                            var bumpedx = false, bumpedy = false;
+                            
+                            function hit(x, y) {
+                                var scored = pinballTile.hasTile(x, y);
+                                if (scored) {
+                                    pinballTile.removeTile(x, y);
+                                    score();
+                                }
+                                return scored;
+                            }
+
+                            do {
+                                bumpedx = false; bumpedy = false;
+
+                                if (
+                                    (loc.x == 0 && d_h == -1) ||
+                                    (loc.x == 9 && d_h == 1) ||
+                                    (isHit = hit(loc.x + d_h, loc.y))
+                                ) {
+                                    bumpedx = true;
+                                }
+
+                                else if (
+                                    (loc.y == 19 && d_v == 1) ||
+                                    (isCaught = pinballCatcher1.hasTile(loc.x, loc.y + d_v) || pinballCatcher2.hasTile(loc.x, loc.y + d_v)) ||
+                                    (isHit = hit(loc.x, loc.y + d_v))
+                                ) {
+                                    bumpedy = true;
+                                }
+
+                                else if (
+                                    (isCaught = pinballCatcher1.hasTile(loc.x + d_h, loc.y + d_v) || pinballCatcher2.hasTile(loc.x + d_h, loc.y + d_v)) ||
+                                    (isHit = hit(loc.x + d_h, loc.y + d_v))
+                                ) {
+                                    bumpedx = true; bumpedy = true;
+                                }
+
+                                if (bumpedx) d_h = -d_h;
+                                if (bumpedy) d_v = -d_v;
+
+                                isBumped = loc.x === 0 || loc.x === 9 || loc.y === 0 || loc.y === 19;
+
+                                if (isCaught) GameSound.sound.move();
+                                else if (isBumped) GameSound.sound.move2();
+                                else if (isHit) GameSound.sound.fire();
+                            } while(bumpedx || bumpedy)
+
+                            pinball.setLocation(loc.x + d_h, loc.y += d_v);
+
+                            if (loc.y == 19 || loc.y == 0) {
+                                tiles = pinballTile.getTiles();
+                                lifeLost(pinball, loc.y == 0 ? pinballCatcher1: pinballCatcher2);
+                            }
+                        }
+
+                        function initializeTimers() {
+                            tmr = new page.Timer({
+                                interval: 100,
+                                func: function() {
+                                    roll();
+                                }
+                            });
+                            tmr.start();
+                        }
+                        
+                        function initializeBrickObjects() {
+                            pinballTile = new page.BrickObject({
+                                brickLocation: { x: 0, y: 7 }, tiles
+                            });
+                            pinballCatcher1 = new page.BrickObject({
+                                brickLocation: { x: 3, y: 0 },
+                                tiles: brickObjects["rectTiles"](4, 1)
+                            });
+                            pinballCatcher2 = new page.BrickObject({
+                                brickLocation: { x: 3, y: 19 },
+                                tiles: brickObjects["rectTiles"](4, 1)
+                            });
+                            pinball = new page.BrickObject({
+                                brickLocation: { x: 4, y: 18 },
+                                tiles: [{ x: 0, y: 0 }],
+                                color: "green"
+                            })
+                        }
+
+                        // function initializeTimers() {
+                        //     tmr = new page.Timer({
+                        //         interval: 5000,
+                        //         func: function() {
+                        //             run();
+                        //         }
+                        //     });
+                        //     tmr.start();
+                        // }
+
+                        this.keydown = {
+                            left: { 
+                                _function: function() { 
+                                    var loc1 = pinballCatcher1.getLocation();
+                                    var loc2 = pinballCatcher2.getLocation();
+                                    var ploc = pinball.getLocation();
+                                    if (loc1.x != 0) {
+                                        pinballCatcher1.setLocation(loc1.x - 1, loc1.y);
+                                        pinballCatcher2.setLocation(loc2.x - 1, loc2.y);
+                                        if (ploc.y == 1) pinball.setLocation(ploc.x - 1, 1);
+                                        else if (ploc.y == 18) pinball.setLocation(ploc.x - 1, 18);
+                                    }
+                                },
+                                repeat: true
+                            },
+                            right: {
+                                _function: function() { 
+                                    var loc1 = pinballCatcher1.getLocation();
+                                    var loc2 = pinballCatcher2.getLocation();
+                                    var ploc = pinball.getLocation();
+                                    if (loc1.x != 6) {
+                                        pinballCatcher1.setLocation(loc2.x + 1, loc1.y);
+                                        pinballCatcher2.setLocation(loc2.x + 1, loc2.y);
+                                        if (ploc.y == 1) pinball.setLocation(ploc.x + 1, 1);
+                                        else if (ploc.y == 18) pinball.setLocation(ploc.x + 1, 18);
+                                    }
+                                },
+                                repeat: true
+                            },
+                            space: {
+                                repeat: true,
+                                _function: function() { fire(); }
+                            } 
+                        };
+                        this.initialize = function() {
+                            isRolled = false;
                             initializeBrickObjects();
                             initializeTimers();
                             console.log("initialized game");
